@@ -1,34 +1,57 @@
 local ClickGui = {}
+local UserInputService = game:GetService("UserInputService")
 
-function ClickGui.CreateMenu(parentFrame)
-    -- Lewy panel (Sidebar)
+-- Zmienne na moduły, które załadujemy później
+local DragSystem, Animation
+
+function ClickGui.Init(dragMod, animMod)
+    DragSystem = dragMod
+    Animation = animMod
+end
+
+ClickGui.CurrentBind = Enum.KeyCode.RightShift
+ClickGui.Visible = true
+
+function ClickGui.CreateMenu()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "XenoMenu_Gui"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = game:GetService("CoreGui")
+
+    local MainFrame = Instance.new("CanvasGroup") -- Używamy CanvasGroup dla FadeIn
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, 500, 0, 350)
+    MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    MainFrame.Parent = ScreenGui
+
+    -- Inicjalizacja systemów
+    DragSystem.Enable(MainFrame)
+    Animation.FadeIn(MainFrame, 0.8)
+
+    ClickGui.CreateSidebar(MainFrame)
+
+    -- Toggle Menu
+    UserInputService.InputBegan:Connect(function(input, processed)
+        if not processed and input.KeyCode == ClickGui.CurrentBind then
+            ClickGui.Visible = not ClickGui.Visible
+            MainFrame.Visible = ClickGui.Visible
+        end
+    end)
+end
+
+function ClickGui.CreateSidebar(parent)
     local Sidebar = Instance.new("Frame")
-    Sidebar.Name = "Sidebar"
     Sidebar.Size = UDim2.new(0, 150, 1, 0)
     Sidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    Sidebar.BorderSizePixel = 0
-    Sidebar.Parent = parentFrame
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 10)
-    corner.Parent = Sidebar
-
-    -- Linia oddzielająca (ta pionowa z Twojego screena)
-    local Line = Instance.new("Frame")
-    Line.Name = "Separator"
-    Line.Position = UDim2.new(1, 0, 0, 0)
-    Line.Size = UDim2.new(0, 1, 1, 0)
-    Line.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Line.BorderSizePixel = 0
-    Line.Parent = Sidebar
-
-    -- Kontener na przyciski w Sidebarze
-    local ButtonList = Instance.new("UIListLayout")
-    ButtonList.Parent = Sidebar
-    ButtonList.Padding = UDim.new(0, 5)
-    ButtonList.SortOrder = Enum.SortOrder.LayoutOrder
-
-    print("ClickGui: Sidebar utworzony.")
+    Sidebar.Parent = parent
+    
+    local Title = Instance.new("TextLabel")
+    Title.Text = "XENO MENU"
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.TextColor3 = Color3.new(1,1,1)
+    Title.BackgroundTransparency = 1
+    Title.Parent = Sidebar
 end
 
 return ClickGui
