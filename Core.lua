@@ -30,6 +30,5 @@ function Core:Boot()
     -- Animacja na koniec
     Animation.PopIn(MainFrame)
 end
-
 Core:Boot()
 return Core
