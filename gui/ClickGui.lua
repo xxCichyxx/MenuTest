@@ -14,7 +14,7 @@ ClickGui.Visible = true
 
 function ClickGui.CreateMenu()
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "XenoMenu_Gui"
+    ScreenGui.Name = "Menu_Gui"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.Parent = game:GetService("CoreGui")
 
@@ -47,7 +47,7 @@ function ClickGui.CreateSidebar(parent)
     Sidebar.Parent = parent
     
     local Title = Instance.new("TextLabel")
-    Title.Text = "XENO MENU"
+    Title.Text = "MENU"
     Title.Size = UDim2.new(1, 0, 0, 50)
     Title.TextColor3 = Color3.new(1,1,1)
     Title.BackgroundTransparency = 1

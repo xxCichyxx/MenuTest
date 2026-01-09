@@ -12,7 +12,7 @@ local function GetModule(path)
 end
 
 function Core:Boot()
-    print("Ładowanie XenoMenu...")
+    print("Ładowanie xxx..")
     
     -- Pobieranie wszystkich komponentów
     local Animation = GetModule("utils/animation.lua")
@@ -23,7 +23,7 @@ function Core:Boot()
         -- Łączenie modułów
         ClickGui.Init(Drag, Animation)
         ClickGui.CreateMenu()
-        print("XenoMenu załadowane pomyślnie!")
+        print("xxx załadowane pomyślnie!")
     end
 end
 
