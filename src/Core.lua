@@ -285,17 +285,17 @@ function Core:CreateTab(options)
 
     function Tab:CreateButton(options)
         local ButtonModule = getComponent("Button")
-        if ButtonModule then return ButtonModule.new(contentContainer, self.Theme, options) end
+        return ButtonModule.new(contentContainer, self.Theme, options)
     end
 
     function Tab:CreateToggle(options)
         local ToggleModule = getComponent("Toggle")
-        if ToggleModule then return ToggleModule.new(contentContainer, self.Theme, options) end
+        return ToggleModule.new(contentContainer, self.Theme, options)
     end
 
     function Tab:CreateSlider(options)
         local SliderModule = getComponent("Slider")
-        if SliderModule then return SliderModule.new(contentContainer, self.Theme, options) end
+        return SliderModule.new(contentContainer, self.Theme, options)
     end
 
     return Tab
