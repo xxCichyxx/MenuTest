@@ -1,18 +1,11 @@
---[[
-    InputManager
-    Obsługuje globalne Bindy oraz logikę przesuwania okna (Dragging).
-]]
-
 local InputManager = {}
 local UserInputService = game:GetService("UserInputService")
 
--- Zmienna przechowująca aktualny KeyBind i funkcję do wywołania
 local currentBind = nil
 local onBindPressed = nil
 
--- Nasłuchiwanie globalne na wciśnięcie klawisza
 UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
-    if gameProcessedEvent then return end -- Ignorujemy input, jeśli jest on używany np. do pisania na czacie
+    if gameProcessedEvent then return end 
 
     if input.UserInputType == Enum.UserInputType.Keyboard and currentBind and input.KeyCode == currentBind then
         if onBindPressed then
@@ -21,18 +14,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
     end
 end)
 
--- Funkcja do inicjalizacji Binda, wywoływana przez Core.lua
 function InputManager:Initialize(bind, callback)
     currentBind = bind
     onBindPressed = callback
 end
 
--- Funkcja do ustawienia logiki przesuwania okna
 function InputManager:SetupDragging(draggableFrame, mainFrame)
     local dragging = false
-    local dragInput = nil
-    local dragStart = nil
-    local startPosition = nil
+    local dragInput, dragStart, startPosition
 
     draggableFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -49,16 +38,14 @@ function InputManager:SetupDragging(draggableFrame, mainFrame)
     end)
 
     draggableFrame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            if dragging then
-                local delta = input.Position - dragStart
-                mainFrame.Position = UDim2.new(
-                    startPosition.X.Scale,
-                    startPosition.X.Offset + delta.X,
-                    startPosition.Y.Scale,
-                    startPosition.Y.Offset + delta.Y
-                )
-            end
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(
+                startPosition.X.Scale,
+                startPosition.X.Offset + delta.X,
+                startPosition.Y.Scale,
+                startPosition.Y.Offset + delta.Y
+            )
         end
     end)
 end
