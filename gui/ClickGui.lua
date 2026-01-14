@@ -23,14 +23,7 @@ function ClickGui.new(animModule, dragModule)
     drag = dragModule
     
     self.isOpen = false
-    self.gui = self:_createUI()
-    
-    -- Ukryj GUI na starcie
-    self.gui.MainFrame.Visible = false
-    self.gui.MainFrame.GroupTransparency = 1
-    
-    -- Włącz przeciąganie dla górnego paska
-    drag.Enable(self.gui.TopBar)
+    self.gui = nil
     
     return self
 end
@@ -125,20 +118,6 @@ function ClickGui:_createUI()
     gui.ContentFrame.BackgroundTransparency = 1
     gui.ContentFrame.Parent = gui.MainFrame
     
-    -- Możesz tutaj dodać więcej elementów do 'ContentFrame'
-    -- Przykład:
-    local exampleButton = Instance.new("TextButton")
-    exampleButton.Name = "ExampleButton"
-    exampleButton.Text = "Click me!"
-    exampleButton.Size = UDim2.new(0, 100, 0, 30)
-    exampleButton.Position = UDim2.fromOffset(20, 20)
-    exampleButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-    exampleButton.TextColor3 = Color3.new(1, 1, 1)
-    exampleButton.Parent = gui.ContentFrame
-    
-    local btnCorner = corner:Clone()
-    btnCorner.Parent = exampleButton
-
     return gui
 end
 
