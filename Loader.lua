@@ -22,11 +22,16 @@ function Core:Boot()
     -- Pobieranie wszystkich komponentów
     local Animation = GetModule("utils/animation.lua")
     local Drag = GetModule("utils/drag.lua")
+    local BindManager = GetModule("managers/BindManager.lua")
     local ClickGui = GetModule("gui/ClickGui.lua")
 
-    if Animation and Drag and ClickGui then
+    if Animation and Drag and ClickGui and BindManager then
         -- Łączenie modułów
-        ClickGui.Init(Drag, Animation)
+        BindManager.Init(function()
+            ClickGui.Toggle()
+        end)
+
+        ClickGui.Init(Drag, Animation, BindManager)
         ClickGui.CreateMenu()
         print("xxx załadowane pomyślnie!")
     end

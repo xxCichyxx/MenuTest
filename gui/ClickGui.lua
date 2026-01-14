@@ -1,37 +1,33 @@
 local ClickGui = {}
-local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 
 -- Zmienne na moduły, które załadujemy później
-local DragSystem, Animation
+local DragSystem, Animation, BindManager
 
 local MainFrame -- Przechowujemy referencję do okna globalnie w module
+local ScreenGui -- Przechowujemy referencję do ScreenGui
 
-function ClickGui.Init(dragMod, animMod)
+function ClickGui.Init(dragMod, animMod, bindMod)
     DragSystem = dragMod
     Animation = animMod
+    BindManager = bindMod
 end
 
-ClickGui.CurrentBind = Enum.KeyCode.RightShift
 ClickGui.Visible = true
-
--- Funkcja do zmiany binda (użyjesz jej potem w przycisku ustawień)
-function ClickGui.SetBind(newKey)
-    if typeof(newKey) == "EnumItem" then
-        ClickGui.CurrentBind = newKey
-    end
-end
 
 -- Funkcja przełączająca menu z animacją i resetem pozycji
 function ClickGui.Toggle()
     ClickGui.Visible = not ClickGui.Visible
     
     if ClickGui.Visible then
+        ScreenGui.Enabled = true
         -- Reset pozycji na środek ekranu (500x350 to rozmiar okna)
         MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
         Animation.FadeIn(MainFrame, 0.5)
     else
-        Animation.FadeOut(MainFrame, 0.5)
+        Animation.FadeOut(MainFrame, 0.5, function()
+            ScreenGui.Enabled = false
+        end)
     end
 end
 
@@ -42,7 +38,7 @@ function ClickGui.CreateMenu()
         env.ActiveMenuInstance:Destroy()
     end
 
-    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = HttpService:GenerateGUID(false) -- Losowa nazwa (np. A1B2-C3D4...)
     ScreenGui.ResetOnSpawn = false
     env.ActiveMenuInstance = ScreenGui -- Zapisujemy nową instancję, aby móc ją potem usunąć
@@ -62,13 +58,6 @@ function ClickGui.CreateMenu()
     Animation.PopUp(MainFrame, 0.5, UDim2.new(0, 500, 0, 350))
 
     ClickGui.CreateSidebar(MainFrame)
-
-    -- Toggle Menu
-    UserInputService.InputBegan:Connect(function(input, processed)
-        if not processed and not ClickGui.IsBinding and input.KeyCode == ClickGui.CurrentBind then
-            ClickGui.Toggle()
-        end
-    end)
 end
 
 function ClickGui.CreateSidebar(parent)
