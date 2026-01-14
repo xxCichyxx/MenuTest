@@ -7,8 +7,8 @@ local Theme = {}
 
 Theme.Colors = {
     -- Główne kolory okna
-    MainBackground = Color3.fromRGB(15, 15, 15),
-    SidebarBackground = Color3.fromRGB(10, 10, 10),
+    MainBackground = Color3.fromRGB(0, 0, 0),
+    SidebarBackground = Color3.fromRGB(0, 0, 0),
     SecondaryPanels = Color3.fromRGB(20, 20, 20),
     
     -- Kolory tekstu
