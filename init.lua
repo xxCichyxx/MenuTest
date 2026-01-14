@@ -28,11 +28,12 @@ local Core = LoadModule("src/Core.lua")
 if ThemeManager and InputManager and Core then
     -- Tworzymy funkcję :CreateWindow, która będzie dostępna dla użytkownika
     function Hub:CreateWindow(options)
-        -- Przekazujemy załadowane moduły do Core, aby mógł z nich korzystać
+        -- Przekazujemy załadowane moduły i BASE_URL do Core, aby mógł z nich korzystać
         return Core.new({
             ThemeManager = ThemeManager,
             InputManager = InputManager,
-            Options = options
+            Options = options,
+            BASE_URL = BASE_URL -- Przekazanie URL do Core
         })
     end
 else
