@@ -10,23 +10,19 @@ local function LoadModule(path)
     return func()
 end
 
--- Ładowanie wszystkich komponentów
-local ThemeManager = LoadModule("src/ThemeManager.lua")
-local InputManager = LoadModule("src/InputManager.lua")
-local AnimManager  = LoadModule("src/AnimationManager.lua")
-local Core         = LoadModule("src/Core.lua")
+local Theme = LoadModule("src/ThemeManager.lua")
+local Input = LoadModule("src/InputManager.lua")
+local Anim  = LoadModule("src/AnimationManager.lua")
+local Core  = LoadModule("src/Core.lua")
 
-if ThemeManager and InputManager and AnimManager and Core then
-    function Hub:CreateWindow(options)
-        return Core.new({
-            Theme = ThemeManager,
-            Input = InputManager,
-            Anims = AnimManager,
-            Config = options
-        })
-    end
-else
-    warn("❌ Krytyczny błąd ładowania biblioteki!")
+function Hub:CreateWindow(options)
+    -- Kluczowe: Przekazujemy wszystkie moduły do Core.new
+    return Core.new({
+        Theme = Theme,
+        Input = Input,
+        Anims = Anim,
+        Config = options
+    })
 end
 
 return Hub
