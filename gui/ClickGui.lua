@@ -63,7 +63,7 @@ function ClickGui.CreateMenu()
 
     -- Toggle Menu
     UserInputService.InputBegan:Connect(function(input, processed)
-        if not processed and input.KeyCode == ClickGui.CurrentBind then
+        if not processed and not ClickGui.IsBinding and input.KeyCode == ClickGui.CurrentBind then
             ClickGui.Toggle()
         end
     end)
