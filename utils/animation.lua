@@ -27,4 +27,14 @@ function Utils.PopUp(object, duration, finalSize)
     TweenService:Create(object, info, {Size = finalSize}):Play()
 end
 
+-- Funkcja do skalowania w dół (zamykanie)
+function Utils.ScaleOut(object, duration, callback)
+    local info = TweenInfo.new(duration or 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+    local tween = TweenService:Create(object, info, {Size = UDim2.new(0, 0, 0, 0)})
+    tween:Play()
+    tween.Completed:Connect(function()
+        if callback then callback() end
+    end)
+end
+
 return Utils

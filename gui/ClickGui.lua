@@ -51,13 +51,15 @@ function ClickGui.CreateMenu()
     MainFrame = Instance.new("CanvasGroup") -- Przypisujemy do zmiennej modułowej
     MainFrame.Name = "MainFrame"
     MainFrame.Size = UDim2.new(0, 500, 0, 350)
-    MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
+    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5) -- Ustawiamy punkt zakotwiczenia na środek
+    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0) -- Pozycja na środku ekranu
     MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     MainFrame.Parent = ScreenGui
 
     -- Inicjalizacja systemów
     DragSystem.Enable(MainFrame)
-    Animation.FadeIn(MainFrame, 0.8)
+    Animation.FadeIn(MainFrame, 0.5)
+    Animation.PopUp(MainFrame, 0.5, UDim2.new(0, 500, 0, 350))
 
     ClickGui.CreateSidebar(MainFrame)
 
