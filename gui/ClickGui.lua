@@ -22,7 +22,7 @@ function ClickGui.Toggle()
     if ClickGui.Visible then
         ScreenGui.Enabled = true
         -- Reset pozycji na środek ekranu (500x350 to rozmiar okna)
-        MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
+        MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
         Animation.FadeIn(MainFrame, 0.5)
     else
         Animation.FadeOut(MainFrame, 0.5, function()
@@ -50,6 +50,7 @@ function ClickGui.CreateMenu()
     MainFrame.AnchorPoint = Vector2.new(0.5, 0.5) -- Ustawiamy punkt zakotwiczenia na środek
     MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0) -- Pozycja na środku ekranu
     MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    MainFrame.GroupTransparency = 1 -- Ustawiamy startową przezroczystość, aby FadeIn działał poprawnie od zera
     MainFrame.Parent = ScreenGui
 
     -- Inicjalizacja systemów
