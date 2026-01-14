@@ -1,39 +1,48 @@
+-- managers/BindManager.lua
+-- Modułowy i elastyczny system do zarządzania wieloma przypisaniami klawiszy.
+
 local UserInputService = game:GetService("UserInputService")
 
 local BindManager = {}
-BindManager.BindKey = Enum.KeyCode.RightShift
-BindManager.IsBinding = false
-BindManager.OnToggle = nil
+BindManager.Binds = {} -- Tabela przechowująca wszystkie aktywne przypisania
 
-function BindManager.Init(onToggleCallback)
-    BindManager.OnToggle = onToggleCallback
+--[[
+    Tworzy nowe przypisanie klawisza.
+    @param key Enum.KeyCode - Klawisz do przypisania.
+    @param callback function - Funkcja, która zostanie wywołana po naciśnięciu klawisza.
+]]
+function BindManager:new(key, callback)
+    if not typeof(key) == "EnumItem" or not typeof(callback) == "function" then
+        warn("BindManager: Nieprawidłowe argumenty. Oczekiwano Enum.KeyCode i funkcji.")
+        return
+    end
+    
+    local bindObject = {
+        Key = key,
+        Callback = callback,
+        Enabled = true
+    }
+    
+    table.insert(self.Binds, bindObject)
+    
+    -- Zwracamy obiekt, aby można było go w przyszłości modyfikować (np. unbind)
+    return bindObject
+end
 
-    UserInputService.InputBegan:Connect(function(input, processed)
-        if not processed and not BindManager.IsBinding then
-            if input.KeyCode == BindManager.BindKey then
-                if BindManager.OnToggle then
-                    BindManager.OnToggle()
+--[[
+    Inicjalizuje główną pętlę nasłuchującą. Należy to wywołać tylko raz.
+]]
+function BindManager:init()
+    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+        if gameProcessedEvent then return end
+
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            for _, bind in ipairs(BindManager.Binds) do
+                if bind.Enabled and input.KeyCode == bind.Key then
+                    -- Uruchamiamy callback w bezpiecznym wątku
+                    task.spawn(bind.Callback)
                 end
             end
-        end
-    end)
-end
-
-function BindManager.SetBind(newKey)
-    if typeof(newKey) == "EnumItem" then
-        BindManager.BindKey = newKey
-    end
-end
-
-function BindManager.StartBinding(callback)
-    BindManager.IsBinding = true
-    local connection
-    connection = UserInputService.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Keyboard then
-            BindManager.BindKey = input.KeyCode
-            BindManager.IsBinding = false
-            if callback then callback(input.KeyCode) end
-            connection:Disconnect()
         end
     end)
 end

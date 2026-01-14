@@ -1,41 +1,38 @@
-local Core = {}
-local RepoURL = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/main/"
+-- Loader.lua
+-- Główny plik inicjalizujący menu i jego komponenty w środowisku lokalnym/plikowym.
+-- Zakłada, że skrypty modułowe znajdują się w odpowiednich podfolderach (gui, managers, utils).
 
-local function GetModule(path)
-    local success, content = pcall(function() return game:HttpGet(RepoURL .. path) end)
-    if success then
-        return loadstring(content)()
-    else
-        warn("Nie udało się pobrać: " .. path)
-        return nil
-    end
-end
+print("Ładowanie menu...")
 
-function Core:Boot()
-    -- Auto Execute (Queue on Teleport) - system jak w Infinite Yield
-    if typeof(queue_on_teleport) == "function" then
-        queue_on_teleport('loadstring(game:HttpGet("' .. RepoURL .. 'Loader.lua"))()')
-    end
+-- W środowisku Roblox, ścieżki do require wyglądałyby np. tak:
+-- local BindManager = require(game.ReplicatedStorage.Menu.managers.BindManager)
+-- Tutaj symulujemy to, zakładając, że struktura plików jest zachowana.
+-- W standardowym Lua, `require` używa `package.path`. W Luau (Roblox) jest to oparte na hierarchii obiektów.
+-- Poniższy kod jest przykładem, jakby to wyglądało w Robloxie, dostosowanym do logiki.
 
-    print("Ładowanie xxx..")
-    
-    -- Pobieranie wszystkich komponentów
-    local Animation = GetModule("utils/animation.lua")
-    local Drag = GetModule("utils/drag.lua")
-    local BindManager = GetModule("managers/BindManager.lua")
-    local ClickGui = GetModule("gui/ClickGui.lua")
+-- Ścieżki do modułów
+-- Dla celów demonstracyjnych, zakładamy, że moduły są w tym samym folderze, 
+-- ale normalnie byłyby w ReplicatedStorage lub podobnym miejscu.
+-- W tym przypadku musimy dostosować ścieżkę dla lokalnego require.
+-- W Lua, `.` jest używany jako separator katalogów w `require`.
+local BindManager = require(script.Parent.managers.BindManager)
+local ClickGui = require(script.Parent.gui.ClickGui)
+local animation = require(script.Parent.utils.animation)
+local drag = require(script.Parent.utils.drag)
 
-    if Animation and Drag and ClickGui and BindManager then
-        -- Łączenie modułów
-        BindManager.Init(function()
-            ClickGui.Toggle()
-        end)
+-- 1. Inicjalizacja menedżera przypisań klawiszy
+BindManager:init()
+print("BindManager zainicjalizowany.")
 
-        ClickGui.Init(Drag, Animation, BindManager)
-        ClickGui.CreateMenu()
-        print("xxx załadowane pomyślnie!")
-    end
-end
+-- 2. Stworzenie instancji GUI z wstrzyknięciem zależności
+local myGui = ClickGui.new(animation, drag)
+print("Instancja ClickGui utworzona.")
 
-Core:Boot()
-return Core
+-- 3. Stworzenie nowego przypisania dla przełączania GUI
+-- Używamy anonimowej funkcji, aby zapewnić, że `myGui:toggle()` jest wywoływane z poprawnym `self`.
+BindManager:new(Enum.KeyCode.RightShift, function()
+    myGui:toggle()
+end)
+print("Przypisano klawisz RightShift do przełączania GUI.")
+
+print("Menu załadowane pomyślnie. Naciśnij Prawy Shift, aby otworzyć/zamknąć.")
