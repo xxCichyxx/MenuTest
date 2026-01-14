@@ -1,5 +1,5 @@
 -- Loader.lua
--- Wersja przywrócona do ładowania z GitHub, ale wykorzystująca nową, modułową strukturę kodu.
+-- Poprawna wersja do ładowania z GitHub, wykorzystująca nową, modułową strukturę kodu.
 
 local Core = {}
 -- Upewnij się, że ta ścieżka jest poprawna i prowadzi do Twojego repozytorium.
@@ -60,7 +60,6 @@ function Core:Boot()
     print("Instancja ClickGui utworzona.")
 
     -- 3. Stworzenie nowego przypisania dla przełączania GUI
-    -- Używamy anonimowej funkcji, aby zapewnić, że `myGui:toggle()` jest wywoływane z poprawnym `self`.
     BindManager:new(Enum.KeyCode.RightShift, function()
         myGui:toggle()
     end)
