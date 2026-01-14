@@ -158,7 +158,7 @@ function Core:_build()
     closeBtn.Name = "Close"
     closeBtn.Text = "X"
     closeBtn.Size = UDim2.new(0, 20, 1, 0)
-    closeBtn.Event.MouseButton1Click:Connect(function() self:Toggle() end)
+    closeBtn.MouseButton1Click:Connect(function() self:Toggle() end)
     closeBtn.Parent = topBar
     
     self.InputManager:SetupDragging(self.MainFrame, self.MainFrame)
