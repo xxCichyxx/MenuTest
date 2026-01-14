@@ -12,6 +12,11 @@ local function GetModule(path)
 end
 
 function Core:Boot()
+    -- Auto Execute (Queue on Teleport) - system jak w Infinite Yield
+    if typeof(queue_on_teleport) == "function" then
+        queue_on_teleport('loadstring(game:HttpGet("' .. RepoURL .. 'Loader.lua"))()')
+    end
+
     print("Ładowanie xxx..")
     
     -- Pobieranie wszystkich komponentów

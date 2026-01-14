@@ -1,8 +1,11 @@
 local ClickGui = {}
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 
 -- Zmienne na moduły, które załadujemy później
 local DragSystem, Animation
+
+local MainFrame -- Przechowujemy referencję do okna globalnie w module
 
 function ClickGui.Init(dragMod, animMod)
     DragSystem = dragMod
@@ -12,13 +15,40 @@ end
 ClickGui.CurrentBind = Enum.KeyCode.RightShift
 ClickGui.Visible = true
 
+-- Funkcja do zmiany binda (użyjesz jej potem w przycisku ustawień)
+function ClickGui.SetBind(newKey)
+    if typeof(newKey) == "EnumItem" then
+        ClickGui.CurrentBind = newKey
+    end
+end
+
+-- Funkcja przełączająca menu z animacją i resetem pozycji
+function ClickGui.Toggle()
+    ClickGui.Visible = not ClickGui.Visible
+    
+    if ClickGui.Visible then
+        -- Reset pozycji na środek ekranu (500x350 to rozmiar okna)
+        MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
+        Animation.FadeIn(MainFrame, 0.5)
+    else
+        Animation.FadeOut(MainFrame, 0.5)
+    end
+end
+
 function ClickGui.CreateMenu()
+    -- Singleton: Sprawdzamy czy instancja już istnieje w globalnym środowisku i usuwamy ją
+    local env = (getgenv and getgenv()) or _G
+    if env.ActiveMenuInstance and env.ActiveMenuInstance.Parent then
+        env.ActiveMenuInstance:Destroy()
+    end
+
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "Menu_Gui"
+    ScreenGui.Name = HttpService:GenerateGUID(false) -- Losowa nazwa (np. A1B2-C3D4...)
     ScreenGui.ResetOnSpawn = false
+    env.ActiveMenuInstance = ScreenGui -- Zapisujemy nową instancję, aby móc ją potem usunąć
     ScreenGui.Parent = game:GetService("CoreGui")
 
-    local MainFrame = Instance.new("CanvasGroup") -- Używamy CanvasGroup dla FadeIn
+    MainFrame = Instance.new("CanvasGroup") -- Przypisujemy do zmiennej modułowej
     MainFrame.Name = "MainFrame"
     MainFrame.Size = UDim2.new(0, 500, 0, 350)
     MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
@@ -34,8 +64,7 @@ function ClickGui.CreateMenu()
     -- Toggle Menu
     UserInputService.InputBegan:Connect(function(input, processed)
         if not processed and input.KeyCode == ClickGui.CurrentBind then
-            ClickGui.Visible = not ClickGui.Visible
-            MainFrame.Visible = ClickGui.Visible
+            ClickGui.Toggle()
         end
     end)
 end
