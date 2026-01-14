@@ -53,7 +53,7 @@ function Toggle:_build()
     self.Switch.Parent = self.Container
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, self.Theme.Rounding.UICorner)
+    corner.CornerRadius = UDim.new(0, self.Theme.Rounding.Buttons)
     corner.Parent = self.Switch
 
     -- Kółko wewnątrz przełącznika
@@ -78,7 +78,7 @@ end
 
 function Toggle:_updateVisuals()
     local knobPosition = self.Value and UDim2.fromScale(0.55, 0.1) or UDim2.fromScale(0.05, 0.1)
-    local switchColor = self.Value and self.Theme.Colors.Accent or self.Theme.Colors.Secondary
+    local switchColor = self.Value and self.Theme.Colors.GreenBadge or self.Theme.Colors.SecondaryPanels
 
     self.Switch.BackgroundColor3 = switchColor
     self.Knob.Position = knobPosition

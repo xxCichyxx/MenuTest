@@ -65,7 +65,7 @@ function Slider:_build()
     self.Track.Name = "Track"
     self.Track.Size = UDim2.new(1, 0, 0.2, 0)
     self.Track.Position = UDim2.new(0, 0, 0.6, 0)
-    self.Track.BackgroundColor3 = self.Theme.Colors.Secondary
+    self.Track.BackgroundColor3 = self.Theme.Colors.SecondaryPanels
     self.Track.Parent = self.Container
     
     local trackCorner = Instance.new("UICorner")
@@ -75,7 +75,7 @@ function Slider:_build()
     self.Fill = Instance.new("Frame")
     self.Fill.Name = "Fill"
     self.Fill.Size = UDim2.fromScale(0.5, 1)
-    self.Fill.BackgroundColor3 = self.Theme.Colors.Accent
+    self.Fill.BackgroundColor3 = self.Theme.Colors.GreenBadge
     self.Fill.Parent = self.Track
     
     local fillCorner = Instance.new("UICorner")

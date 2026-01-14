@@ -9,7 +9,8 @@ local BASE_URL = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/main/" --
 -- Funkcja pomocnicza do ładowania modułów
 local function LoadModule(path)
     local success, module = pcall(function()
-        return loadstring(game:HttpGet(BASE_URL .. path))()
+        local url = BASE_URL .. path .. "?v=" .. tick() -- Dodano cache-busting
+        return loadstring(game:HttpGet(url))()
     end)
     if success then
         return module

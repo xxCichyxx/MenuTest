@@ -24,13 +24,13 @@ function Button:_build()
     self.Instance.Name = self.Name
     self.Instance.Text = self.Name
     self.Instance.Size = UDim2.new(1, -20, 0, 30) -- -20 na padding
-    self.Instance.BackgroundColor3 = self.Theme.Colors.Secondary
+    self.Instance.BackgroundColor3 = self.Theme.Colors.SecondaryPanels
     self.Instance.TextColor3 = self.Theme.Colors.Text
     self.Instance.Font = self.Theme.Fonts.Primary.Font
     self.Instance.Parent = self.Parent
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, self.Theme.Rounding.UICorner - 2)
+    corner.CornerRadius = UDim.new(0, self.Theme.Rounding.Buttons)
     corner.Parent = self.Instance
     
     -- Podłączenie funkcji zwrotnej (Callback)
@@ -38,11 +38,11 @@ function Button:_build()
     
     -- Efekt hover
     self.Instance.MouseEnter:Connect(function()
-        self.Instance.BackgroundColor3 = self.Theme.Colors.Accent
+        self.Instance.BackgroundColor3 = self.Theme.Colors.ActiveTabBackground
     end)
     
     self.Instance.MouseLeave:Connect(function()
-        self.Instance.BackgroundColor3 = self.Theme.Colors.Secondary
+        self.Instance.BackgroundColor3 = self.Theme.Colors.SecondaryPanels
     end)
 end
 
