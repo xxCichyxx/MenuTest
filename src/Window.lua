@@ -1,21 +1,37 @@
 local Window = {}
 
--- Serwisy potrzebne do budowy UI
+-- Serwisy
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+
+-- Ładowanie modułów (Window teraz sam dba o swoje funkcje)
+local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
+local Icons = loadstring(game:HttpGet(baseUrl .. "Icons.lua"))()
+local Interactions = loadstring(game:HttpGet(baseUrl .. "Interactions.lua"))()
 
 function Window:Create(config)
     local UI = {}
     local isTouch = UserInputService.TouchEnabled or config.TestMobile
+    
+    -- Funkcja pomocnicza dla nazwy
+    local function generateName()
+        local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        local randomName = ""
+        for i = 1, 15 do
+            local rand = math.random(1, #chars)
+            randomName = randomName .. string.sub(chars, rand, rand)
+        end
+        return randomName
+    end
 
     -- 1. ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "XHUB_" .. math.random(100, 999)
+    ScreenGui.Name = generateName()
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     UI.ScreenGui = ScreenGui
 
-    -- 2. Shadow (Cień)
+    -- 2. Shadow (Cień / Glow)
     local Shadow = Instance.new("ImageLabel")
     Shadow.Name = "Shadow"
     Shadow.BackgroundTransparency = 1
@@ -28,7 +44,7 @@ function Window:Create(config)
     Shadow.Parent = ScreenGui
     UI.Shadow = Shadow
 
-    -- 3. MainFrame (Główne okno)
+    -- 3. MainFrame
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.Size = UDim2.new(0, 700, 0, 400)
@@ -36,6 +52,7 @@ function Window:Create(config)
     MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     MainFrame.BorderSizePixel = 0
     MainFrame.ClipsDescendants = true
+    MainFrame.ZIndex = 1
     MainFrame.Parent = ScreenGui
     UI.MainFrame = MainFrame
 
@@ -43,8 +60,9 @@ function Window:Create(config)
     local MainStroke = Instance.new("UIStroke", MainFrame)
     MainStroke.Color = Color3.fromRGB(80, 80, 80)
     MainStroke.Thickness = 1.6
+    MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    -- 4. TopBar
+    -- 4. TopBar (Obszar przeciągania)
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Size = UDim2.new(1, 0, 0, 32)
@@ -53,7 +71,50 @@ function Window:Create(config)
     TopBar.Parent = MainFrame
     UI.TopBar = TopBar
 
-    -- 5. Sidebar
+    local TopLine = Instance.new("Frame")
+    TopLine.Size = UDim2.new(1, 0, 0, 1)
+    TopLine.Position = UDim2.new(0, 0, 0, 32)
+    TopLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    TopLine.BorderSizePixel = 0
+    TopLine.ZIndex = 4
+    TopLine.Parent = MainFrame
+
+    -- 5. Controls (Przycisków Min/Max/Close)
+    local Controls = Instance.new("Frame")
+    Controls.Name = "Controls"
+    Controls.Size = UDim2.new(0, 105, 1, 0)
+    Controls.Position = UDim2.new(1, -105, 0, 0)
+    Controls.BackgroundTransparency = 1
+    Controls.ZIndex = 6
+    Controls.Parent = TopBar
+    UI.Controls = Controls
+
+    local function createIconBtn(iconName, pos)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 35, 1, 0)
+        btn.Position = pos
+        btn.BackgroundTransparency = 1
+        btn.Text = ""
+        btn.Parent = Controls
+        
+        local iconImg = Instance.new("ImageLabel")
+        iconImg.Name = "Icon"
+        iconImg.Size = UDim2.new(0, 17, 0, 17) 
+        iconImg.Position = UDim2.new(0.5, 0, 0.5, 0)
+        iconImg.AnchorPoint = Vector2.new(0.5, 0.5)
+        iconImg.BackgroundTransparency = 1
+        iconImg.ImageColor3 = Color3.fromRGB(200, 200, 200)
+        iconImg.Parent = btn
+        
+        Icons:Apply(iconImg, iconName)
+        return btn
+    end
+
+    UI.MinBtn = createIconBtn("minus", UDim2.new(0, 0, 0, 0))
+    UI.MaxBtn = createIconBtn("maximize-2", UDim2.new(0, 35, 0, 0))
+    UI.CloseBtn = createIconBtn("x", UDim2.new(0, 70, 0, 0))
+
+    -- 6. Sidebar
     local Sidebar = Instance.new("Frame")
     Sidebar.Name = "Sidebar"
     Sidebar.Size = UDim2.new(0, 200, 1, -32)
@@ -61,6 +122,13 @@ function Window:Create(config)
     Sidebar.BackgroundTransparency = 1
     Sidebar.Parent = MainFrame
     UI.Sidebar = Sidebar
+
+    local VerticalLine = Instance.new("Frame")
+    VerticalLine.Size = UDim2.new(0, 1, 1, 0)
+    VerticalLine.Position = UDim2.new(1, 0, 0, 0)
+    VerticalLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    VerticalLine.BorderSizePixel = 0
+    VerticalLine.Parent = Sidebar
 
     local Title = Instance.new("TextLabel")
     Title.Name = "Title"
@@ -73,28 +141,13 @@ function Window:Create(config)
     Title.Parent = Sidebar
     UI.Title = Title
 
-    -- Dekoracja Sidebar
     local TitleLine = Instance.new("Frame")
     TitleLine.Size = UDim2.new(1, 0, 0, 1)
     TitleLine.Position = UDim2.new(0, 0, 0, 45)
     TitleLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     TitleLine.BorderSizePixel = 0
+    TitleLine.ZIndex = 3
     TitleLine.Parent = Sidebar
-
-    local VerticalLine = Instance.new("Frame")
-    VerticalLine.Size = UDim2.new(0, 1, 1, 0)
-    VerticalLine.Position = UDim2.new(1, 0, 0, 0)
-    VerticalLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    VerticalLine.BorderSizePixel = 0
-    VerticalLine.Parent = Sidebar
-
-    -- 6. Przyciski Kontrolne (Min/Max/Close)
-    local Controls = Instance.new("Frame")
-    Controls.Size = UDim2.new(0, 105, 1, 0)
-    Controls.Position = UDim2.new(1, -105, 0, 0)
-    Controls.BackgroundTransparency = 1
-    Controls.Parent = TopBar
-    UI.Controls = Controls
 
     -- 7. Resize Handle
     local ResizeHandle = Instance.new("TextButton")
@@ -107,7 +160,18 @@ function Window:Create(config)
     ResizeHandle.Parent = MainFrame
     UI.ResizeHandle = ResizeHandle
 
-    -- 8. Mobile Toggle (Tylko jeśli Mobile)
+    local ResizeIcon = Instance.new("ImageLabel")
+    ResizeIcon.Name = "Icon"
+    ResizeIcon.Size = UDim2.new(0, 15, 0, 15)
+    ResizeIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+    ResizeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+    ResizeIcon.BackgroundTransparency = 1
+    ResizeIcon.ImageColor3 = Color3.fromRGB(80, 80, 80)
+    ResizeIcon.ZIndex = 11
+    ResizeIcon.Parent = ResizeHandle
+    Icons:Apply(ResizeIcon, "arrow-down-right")
+
+    -- 8. Mobile Toggle
     if isTouch then
         local MobileBtn = Instance.new("ImageButton")
         MobileBtn.Name = "MobileToggle"
@@ -131,9 +195,16 @@ function Window:Create(config)
         MText.ZIndex = 201
         MText.Parent = MobileBtn
         UI.MobileToggleText = MText
+        
+        -- Inicjalizacja przeciągania przycisku mobilnego
+        Interactions:MakeDraggable(MobileBtn, MobileBtn)
     end
 
-    -- Funkcja synchronizacji cienia
+    -- --- AKTYWACJA INTERAKCJI ---
+    Interactions:MakeDraggable(TopBar, MainFrame)
+    Interactions:MakeResizable(ResizeHandle, MainFrame, 600, 350)
+
+    -- Cień RenderStepped
     RunService.RenderStepped:Connect(function()
         if MainFrame.Visible then
             local offset = 35
