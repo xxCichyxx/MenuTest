@@ -66,7 +66,7 @@ function Window:Create(config)
     MainFrame.Name = "MainFrame"
     MainFrame.AnchorPoint = Vector2.new(0, 0)
     MainFrame.Size = UDim2.new(0, 700, 0, 400)
-    MainFrame.Position = UDim2.new(0.5, -350, 0.5, -200)
+    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     MainFrame.BorderSizePixel = 0
     MainFrame.ClipsDescendants = true
