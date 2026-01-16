@@ -44,7 +44,7 @@ function XHUB:CreateWindow(options)
     local MainFrame = UI.MainFrame
     
     -- Stałe pozycje
-    local CenterPos = UDim2.new(0.5, -350, 0.5, -200)
+    local CenterPos = UDim2.new(0, 0, 0, 0)
     local HiddenPos = UDim2.new(0, -750, 1, 20)
 
     local function toggleMenu()
