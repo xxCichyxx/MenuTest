@@ -77,14 +77,15 @@ function XHUB:CreateWindow(options)
     local CloseBtn = createIconBtn("x", UDim2.new(0, 70, 0, 0))
 
     -- Dodanie ikony do ResizeHandle
-    local RIcon = Instance.new("ImageLabel")
-    RIcon.Size = UDim2.new(0, 15, 0, 15)
-    RIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
-    RIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-    RIcon.BackgroundTransparency = 1
-    RIcon.ImageColor3 = Color3.fromRGB(80, 80, 80)
-    RIcon.Parent = UI.ResizeHandle
-    Icons:Apply(RIcon, "arrow-down-right")
+    local ResizeIcon = Instance.new("ImageLabel")
+ResizeIcon.Name = "Icon" -- TERAZ FindFirstChild go znajdzie
+ResizeIcon.Size = UDim2.new(0, 15, 0, 15)
+ResizeIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+ResizeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+ResizeIcon.BackgroundTransparency = 1
+ResizeIcon.ImageColor3 = Color3.fromRGB(80, 80, 80)
+ResizeIcon.Parent = UI.ResizeHandle
+    Icons:Apply(ResizeIcon, "arrow-down-right")
 
     -- 4. AKTYWACJA INTERAKCJI (Naprawa błędu interakcji)
     Interactions:MakeDraggable(UI.TopBar, UI.MainFrame)
