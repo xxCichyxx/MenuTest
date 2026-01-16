@@ -42,15 +42,15 @@ function XHUB:CreateWindow(options)
     local isVisible = true
     local isTweening = false
     local MainFrame = UI.MainFrame
+    
+    -- Stałe pozycje
+    local CenterPos = UDim2.new(0.5, 0, 0.5, 0)
+    local HiddenPos = UDim2.new(0, -750, 1, 20) -- Chowa się do góry, by zawsze wracać na środek
 
     local function toggleMenu()
         if isTweening then return end
         isTweening = true
         
-        local currentSize = MainFrame.AbsoluteSize
-        local CenterPos = UDim2.new(0.5, -currentSize.X/2, 0.5, -currentSize.Y/2)
-        local HiddenPos = UDim2.new(0.5, -currentSize.X/2, 1, 20)
-
         local target = isVisible and HiddenPos or CenterPos
         
         if UI.MobileToggleText then
