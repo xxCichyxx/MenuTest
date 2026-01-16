@@ -3,8 +3,10 @@ local Window = {}
 -- Serwisy
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
 
--- Ładowanie modułów (Window teraz sam dba o swoje funkcje)
+-- Ładowanie modułów
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 local Icons = loadstring(game:HttpGet(baseUrl .. "Icons.lua"))()
 local Interactions = loadstring(game:HttpGet(baseUrl .. "Interactions.lua"))()
@@ -13,7 +15,18 @@ function Window:Create(config)
     local UI = {}
     local isTouch = UserInputService.TouchEnabled or config.TestMobile
     
-    -- Funkcja pomocnicza dla nazwy
+    -- 1. USTALANIE LOKALIZACJI I CZYSZCZENIE
+    local ProtectedLocation = nil
+    local success, _ = pcall(function() ProtectedLocation = CoreGui end)
+    if not success then ProtectedLocation = Players.LocalPlayer:WaitForChild("PlayerGui") end
+
+    -- Usuwanie starych wersji menu (szukamy po nazwie zaczynającej się od XHUB_)
+    for _, child in pairs(ProtectedLocation:GetChildren()) do
+        if child:IsA("ScreenGui") and (child.Name:sub(1,5) == "XHUB_") then
+            child:Destroy()
+        end
+    end
+
     local function generateName()
         local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
         local randomName = ""
@@ -24,14 +37,15 @@ function Window:Create(config)
         return randomName
     end
 
-    -- 1. ScreenGui
+    -- 2. ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = generateName()
+    ScreenGui.Name = "XHUB_" .. generateName()
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.Parent = ProtectedLocation
     UI.ScreenGui = ScreenGui
 
-    -- 2. Shadow (Cień / Glow)
+    -- 3. Shadow (Cień)
     local Shadow = Instance.new("ImageLabel")
     Shadow.Name = "Shadow"
     Shadow.BackgroundTransparency = 1
@@ -44,7 +58,7 @@ function Window:Create(config)
     Shadow.Parent = ScreenGui
     UI.Shadow = Shadow
 
-    -- 3. MainFrame
+    -- 4. MainFrame
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.Size = UDim2.new(0, 700, 0, 400)
@@ -62,7 +76,7 @@ function Window:Create(config)
     MainStroke.Thickness = 1.6
     MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    -- 4. TopBar (Obszar przeciągania)
+    -- 5. TopBar
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Size = UDim2.new(1, 0, 0, 32)
@@ -79,7 +93,7 @@ function Window:Create(config)
     TopLine.ZIndex = 4
     TopLine.Parent = MainFrame
 
-    -- 5. Controls (Przycisków Min/Max/Close)
+    -- 6. Controls (Przycisków Min/Max/Close)
     local Controls = Instance.new("Frame")
     Controls.Name = "Controls"
     Controls.Size = UDim2.new(0, 105, 1, 0)
@@ -114,7 +128,26 @@ function Window:Create(config)
     UI.MaxBtn = createIconBtn("maximize-2", UDim2.new(0, 35, 0, 0))
     UI.CloseBtn = createIconBtn("x", UDim2.new(0, 70, 0, 0))
 
-    -- 6. Sidebar
+    -- --- LOGIKA MAKSYMALIZACJI ---
+    local maximized = false
+    local lastSize, lastPos
+    UI.MaxBtn.MouseButton1Click:Connect(function()
+        if not maximized then
+            lastSize = MainFrame.Size
+            lastPos = MainFrame.Position
+            MainFrame:TweenSizeAndPosition(UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), "Out", "Quart", 0.3, true)
+            maximized = true
+            Icons:Apply(UI.MaxBtn.Icon, "square")
+            UI.ResizeHandle.Visible = false -- Blokujemy resize w full screen
+        else
+            MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out", "Quart", 0.3, true)
+            maximized = false
+            Icons:Apply(UI.MaxBtn.Icon, "maximize-2")
+            UI.ResizeHandle.Visible = true
+        end
+    end)
+
+    -- 7. Sidebar i Reszta...
     local Sidebar = Instance.new("Frame")
     Sidebar.Name = "Sidebar"
     Sidebar.Size = UDim2.new(0, 200, 1, -32)
@@ -122,13 +155,6 @@ function Window:Create(config)
     Sidebar.BackgroundTransparency = 1
     Sidebar.Parent = MainFrame
     UI.Sidebar = Sidebar
-
-    local VerticalLine = Instance.new("Frame")
-    VerticalLine.Size = UDim2.new(0, 1, 1, 0)
-    VerticalLine.Position = UDim2.new(1, 0, 0, 0)
-    VerticalLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    VerticalLine.BorderSizePixel = 0
-    VerticalLine.Parent = Sidebar
 
     local Title = Instance.new("TextLabel")
     Title.Name = "Title"
@@ -139,17 +165,8 @@ function Window:Create(config)
     Title.Size = UDim2.new(1, 0, 0, 45)
     Title.BackgroundTransparency = 1
     Title.Parent = Sidebar
-    UI.Title = Title
 
-    local TitleLine = Instance.new("Frame")
-    TitleLine.Size = UDim2.new(1, 0, 0, 1)
-    TitleLine.Position = UDim2.new(0, 0, 0, 45)
-    TitleLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    TitleLine.BorderSizePixel = 0
-    TitleLine.ZIndex = 3
-    TitleLine.Parent = Sidebar
-
-    -- 7. Resize Handle
+    -- 8. Resize Handle
     local ResizeHandle = Instance.new("TextButton")
     ResizeHandle.Name = "ResizeHandle"
     ResizeHandle.Size = UDim2.new(0, 25, 0, 25)
@@ -160,6 +177,7 @@ function Window:Create(config)
     ResizeHandle.Parent = MainFrame
     UI.ResizeHandle = ResizeHandle
 
+    -- Ikona Resize
     local ResizeIcon = Instance.new("ImageLabel")
     ResizeIcon.Name = "Icon"
     ResizeIcon.Size = UDim2.new(0, 15, 0, 15)
@@ -167,47 +185,14 @@ function Window:Create(config)
     ResizeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
     ResizeIcon.BackgroundTransparency = 1
     ResizeIcon.ImageColor3 = Color3.fromRGB(80, 80, 80)
-    ResizeIcon.ZIndex = 11
     ResizeIcon.Parent = ResizeHandle
     Icons:Apply(ResizeIcon, "arrow-down-right")
-
-    -- 8. Mobile Toggle
-    if isTouch then
-        local MobileBtn = Instance.new("ImageButton")
-        MobileBtn.Name = "MobileToggle"
-        MobileBtn.Size = UDim2.new(0, 55, 0, 55)
-        MobileBtn.Position = UDim2.new(0, 20, 0.5, -27)
-        MobileBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        MobileBtn.ZIndex = 200
-        MobileBtn.Parent = ScreenGui
-        UI.MobileToggle = MobileBtn
-
-        Instance.new("UICorner", MobileBtn).CornerRadius = UDim.new(1, 0)
-        Instance.new("UIStroke", MobileBtn).Color = Color3.fromRGB(100, 100, 100)
-
-        local MText = Instance.new("TextLabel")
-        MText.Size = UDim2.new(1, 0, 1, 0)
-        MText.BackgroundTransparency = 1
-        MText.Text = "Close"
-        MText.TextColor3 = Color3.fromRGB(255, 100, 100)
-        MText.Font = Enum.Font.GothamBold
-        MText.TextSize = 13
-        MText.ZIndex = 201
-        MText.Parent = MobileBtn
-        UI.MobileToggleText = MText
-        
-        -- Inicjalizacja przeciągania przycisku mobilnego
-        Interactions:MakeDraggable(MobileBtn, MobileBtn)
-    end
 
     -- --- AKTYWACJA INTERAKCJI ---
     Interactions:MakeDraggable(TopBar, MainFrame)
     Interactions:MakeResizable(ResizeHandle, MainFrame, 600, 350)
-    UI.MaxBtn.MouseButton1Click:Connect(function()
-    maximized = not maximized
-    UI.ResizeHandle.Visible = not maximized -- Ukrywamy uchwyt, gdy okno jest na cały ekran
-    end)
-    -- Cień RenderStepped
+
+    -- Sync Cienia
     RunService.RenderStepped:Connect(function()
         if MainFrame.Visible then
             local offset = 35
