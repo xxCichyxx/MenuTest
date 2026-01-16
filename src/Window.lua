@@ -21,7 +21,7 @@ function Window:Create(config)
     if not success then ProtectedLocation = Players.LocalPlayer:WaitForChild("PlayerGui") end
 
     for _, child in pairs(ProtectedLocation:GetChildren()) do
-        if child:IsA("ScreenGui") and (child.Name:sub(1,5) == "XHUB_") then
+        if child:IsA("ScreenGui") and child:FindFirstChild("XHUB_IDENTIFIER") then
             child:Destroy()
         end
     end
@@ -43,6 +43,10 @@ function Window:Create(config)
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = ProtectedLocation
     UI.ScreenGui = ScreenGui
+
+    local Tag = Instance.new("BoolValue")
+    Tag.Name = "XHUB_IDENTIFIER"
+    Tag.Parent = ScreenGui
 
     -- 3. Shadow (Cień)
     local Shadow = Instance.new("ImageLabel")
