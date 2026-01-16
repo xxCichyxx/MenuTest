@@ -45,7 +45,7 @@ function XHUB:CreateWindow(options)
     
     -- Stałe pozycje
     local CenterPos = UDim2.new(0.5, -350, 0.5, -200)
-    local HiddenPos = UDim2.new(0.5, -350, 0, -500) -- Chowa się do góry, by zawsze wracać na środek
+    local HiddenPos = UDim2.new(0, -750, 1, 20) -- Chowa się do góry, by zawsze wracać na środek
 
     local function toggleMenu()
         if isTweening then return end
