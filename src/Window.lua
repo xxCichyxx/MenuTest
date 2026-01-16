@@ -15,12 +15,11 @@ function Window:Create(config)
     local UI = {}
     local isTouch = UserInputService.TouchEnabled or config.TestMobile
     
-    -- 1. USTALANIE LOKALIZACJI I CZYSZCZENIE
+    -- 1. USTALANIE LOKALIZACJI I RESET STAREGO GUI
     local ProtectedLocation = nil
     local success, _ = pcall(function() ProtectedLocation = CoreGui end)
     if not success then ProtectedLocation = Players.LocalPlayer:WaitForChild("PlayerGui") end
 
-    -- Usuwanie starych wersji menu (szukamy po nazwie zaczynającej się od XHUB_)
     for _, child in pairs(ProtectedLocation:GetChildren()) do
         if child:IsA("ScreenGui") and (child.Name:sub(1,5) == "XHUB_") then
             child:Destroy()
@@ -39,7 +38,7 @@ function Window:Create(config)
 
     -- 2. ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "XHUB_" .. generateName()
+    ScreenGui.Name = generateName()
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = ProtectedLocation
@@ -76,7 +75,7 @@ function Window:Create(config)
     MainStroke.Thickness = 1.6
     MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    -- 5. TopBar
+    -- 5. TopBar (Nagłówek)
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Size = UDim2.new(1, 0, 0, 32)
@@ -85,6 +84,7 @@ function Window:Create(config)
     TopBar.Parent = MainFrame
     UI.TopBar = TopBar
 
+    -- PRZEDZIAŁKA POZIOMA (TopLine)
     local TopLine = Instance.new("Frame")
     TopLine.Size = UDim2.new(1, 0, 0, 1)
     TopLine.Position = UDim2.new(0, 0, 0, 32)
@@ -93,7 +93,43 @@ function Window:Create(config)
     TopLine.ZIndex = 4
     TopLine.Parent = MainFrame
 
-    -- 6. Controls (Przycisków Min/Max/Close)
+    -- 6. Sidebar (Menu boczne)
+    local Sidebar = Instance.new("Frame")
+    Sidebar.Name = "Sidebar"
+    Sidebar.Size = UDim2.new(0, 200, 1, -32)
+    Sidebar.Position = UDim2.new(0, 0, 0, 32)
+    Sidebar.BackgroundTransparency = 1
+    Sidebar.Parent = MainFrame
+    UI.Sidebar = Sidebar
+
+    -- PRZEDZIAŁKA PIONOWA (VerticalLine)
+    local VerticalLine = Instance.new("Frame")
+    VerticalLine.Size = UDim2.new(0, 1, 1, 0)
+    VerticalLine.Position = UDim2.new(1, 0, 0, 0)
+    VerticalLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    VerticalLine.BorderSizePixel = 0
+    VerticalLine.Parent = Sidebar
+
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Text = config.Name or "X HUB"
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 16
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.Size = UDim2.new(1, 0, 0, 45)
+    Title.BackgroundTransparency = 1
+    Title.Parent = Sidebar
+
+    -- PRZEDZIAŁKA POD TYTUŁEM (TitleLine)
+    local TitleLine = Instance.new("Frame")
+    TitleLine.Size = UDim2.new(1, 0, 0, 1)
+    TitleLine.Position = UDim2.new(0, 0, 0, 45)
+    TitleLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    TitleLine.BorderSizePixel = 0
+    TitleLine.ZIndex = 3
+    TitleLine.Parent = Sidebar
+
+    -- 7. Controls (Przyciski kontrolne)
     local Controls = Instance.new("Frame")
     Controls.Name = "Controls"
     Controls.Size = UDim2.new(0, 105, 1, 0)
@@ -137,34 +173,15 @@ function Window:Create(config)
             lastPos = MainFrame.Position
             MainFrame:TweenSizeAndPosition(UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), "Out", "Quart", 0.3, true)
             maximized = true
-            Icons:Apply(UI.MaxBtn.Icon, "square")
-            UI.ResizeHandle.Visible = false -- Blokujemy resize w full screen
+            Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "square")
+            UI.ResizeHandle.Visible = false
         else
             MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out", "Quart", 0.3, true)
             maximized = false
-            Icons:Apply(UI.MaxBtn.Icon, "maximize-2")
+            Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "maximize-2")
             UI.ResizeHandle.Visible = true
         end
     end)
-
-    -- 7. Sidebar i Reszta...
-    local Sidebar = Instance.new("Frame")
-    Sidebar.Name = "Sidebar"
-    Sidebar.Size = UDim2.new(0, 200, 1, -32)
-    Sidebar.Position = UDim2.new(0, 0, 0, 32)
-    Sidebar.BackgroundTransparency = 1
-    Sidebar.Parent = MainFrame
-    UI.Sidebar = Sidebar
-
-    local Title = Instance.new("TextLabel")
-    Title.Name = "Title"
-    Title.Text = config.Name or "X HUB"
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 16
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.Size = UDim2.new(1, 0, 0, 45)
-    Title.BackgroundTransparency = 1
-    Title.Parent = Sidebar
 
     -- 8. Resize Handle
     local ResizeHandle = Instance.new("TextButton")
@@ -177,7 +194,6 @@ function Window:Create(config)
     ResizeHandle.Parent = MainFrame
     UI.ResizeHandle = ResizeHandle
 
-    -- Ikona Resize
     local ResizeIcon = Instance.new("ImageLabel")
     ResizeIcon.Name = "Icon"
     ResizeIcon.Size = UDim2.new(0, 15, 0, 15)
@@ -192,7 +208,7 @@ function Window:Create(config)
     Interactions:MakeDraggable(TopBar, MainFrame)
     Interactions:MakeResizable(ResizeHandle, MainFrame, 600, 350)
 
-    -- Sync Cienia
+    -- Synchronizacja Cienia
     RunService.RenderStepped:Connect(function()
         if MainFrame.Visible then
             local offset = 35
