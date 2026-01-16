@@ -90,7 +90,7 @@ function Window:Create(config)
     TopLine.Position = UDim2.new(0, 0, 0, 32)
     TopLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     TopLine.BorderSizePixel = 0
-    TopLine.ZIndex = 4
+    TopLine.ZIndex = 10
     TopLine.Parent = MainFrame
 
     -- 6. Sidebar (Menu boczne)
@@ -108,6 +108,7 @@ function Window:Create(config)
     VerticalLine.Position = UDim2.new(1, 0, 0, 0)
     VerticalLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     VerticalLine.BorderSizePixel = 0
+    VerticalLine.ZIndex = 10
     VerticalLine.Parent = Sidebar
 
     local Title = Instance.new("TextLabel")
@@ -126,7 +127,7 @@ function Window:Create(config)
     TitleLine.Position = UDim2.new(0, 0, 0, 45)
     TitleLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     TitleLine.BorderSizePixel = 0
-    TitleLine.ZIndex = 3
+    TitleLine.ZIndex = 10
     TitleLine.Parent = Sidebar
 
     -- 7. Controls (Przyciski kontrolne)

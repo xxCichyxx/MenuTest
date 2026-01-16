@@ -43,18 +43,16 @@ function XHUB:CreateWindow(options)
     local isTweening = false
     local MainFrame = UI.MainFrame
     
-    -- Pozycja startowa i ukryta
-    local CurrentMainPos = MainFrame.Position
-    local HiddenPos = UDim2.new(0, -850, CurrentMainPos.Y.Scale, CurrentMainPos.Y.Offset)
+    -- Stałe pozycje
+    local CenterPos = UDim2.new(0.5, -350, 0.5, -200)
+    local HiddenPos = UDim2.new(0.5, -350, 0, -500) -- Chowa się do góry, by zawsze wracać na środek
 
     local function toggleMenu()
         if isTweening then return end
         isTweening = true
         
-        if isVisible then CurrentMainPos = MainFrame.Position end
-        local target = isVisible and HiddenPos or CurrentMainPos
+        local target = isVisible and HiddenPos or CenterPos
         
-        -- Aktualizacja tekstu na przycisku mobilnym (jeśli istnieje)
         if UI.MobileToggleText then
             UI.MobileToggleText.Text = isVisible and "Open" or "Close"
             UI.MobileToggleText.TextColor3 = isVisible and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
