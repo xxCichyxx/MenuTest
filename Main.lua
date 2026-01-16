@@ -39,13 +39,14 @@ function XHUB:CreateWindow(options)
     UI.ScreenGui.Parent = ProtectedLocation
 
     -- 3. LOGIKA OTWIERANIA/ZAMYKANIA (Tweening)
+    -- 3. LOGIKA OTWIERANIA/ZAMYKANIA
     local isVisible = true
     local isTweening = false
     local MainFrame = UI.MainFrame
     
-    -- Stałe pozycje
-    local CenterPos = UDim2.new(0, 0, 0, 0)
-    local HiddenPos = UDim2.new(0, -750, 1, 20)
+    -- Nowe, inteligentne pozycje (działają przy każdym rozmiarze okna)
+    local CenterPos = UDim2.new(0.5, 0, 0.5, 0) -- Idealny środek
+    local HiddenPos = UDim2.new(0.5, 0, 1.5, 0) -- Schowane pod ekranem
 
     local function toggleMenu()
         if isTweening then return end
@@ -53,19 +54,25 @@ function XHUB:CreateWindow(options)
         
         local target = isVisible and HiddenPos or CenterPos
         
+        -- Jeśli otwieramy, upewnij się, że okno jest widoczne zanim ruszy animacja
+        if not isVisible then 
+            MainFrame.Visible = true 
+        end
+        
+        local tween = TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {Position = target})
+        tween:Play()
+        
+        -- Aktualizacja przycisku mobilnego
         if UI.MobileToggleText then
             UI.MobileToggleText.Text = isVisible and "Open" or "Close"
             UI.MobileToggleText.TextColor3 = isVisible and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
         end
 
-        if not isVisible then MainFrame.Visible = true end
-        
-        local tween = TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {Position = target})
-        tween:Play()
-        
         tween.Completed:Connect(function()
             isVisible = not isVisible
-            if not isVisible then MainFrame.Visible = false end
+            if not isVisible then 
+                MainFrame.Visible = false 
+            end
             isTweening = false
         end)
     end
