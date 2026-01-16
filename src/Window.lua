@@ -203,7 +203,10 @@ function Window:Create(config)
     -- --- AKTYWACJA INTERAKCJI ---
     Interactions:MakeDraggable(TopBar, MainFrame)
     Interactions:MakeResizable(ResizeHandle, MainFrame, 600, 350)
-
+    UI.MaxBtn.MouseButton1Click:Connect(function()
+    maximized = not maximized
+    UI.ResizeHandle.Visible = not maximized -- Ukrywamy uchwyt, gdy okno jest na cały ekran
+    end)
     -- Cień RenderStepped
     RunService.RenderStepped:Connect(function()
         if MainFrame.Visible then
