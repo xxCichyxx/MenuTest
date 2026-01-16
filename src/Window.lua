@@ -64,7 +64,7 @@ function Window:Create(config)
     -- 4. MainFrame
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
-    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5) -- Środek jako punkt odniesienia
+    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5) -- DODAJ TO (Kluczowe!)
     MainFrame.Size = UDim2.new(0, 700, 0, 400)
     MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
@@ -174,20 +174,23 @@ function Window:Create(config)
     local maximized = false
     local lastSize, lastPos
     UI.MaxBtn.MouseButton1Click:Connect(function()
-        if not maximized then
-            lastSize = MainFrame.Size
-            lastPos = MainFrame.Position
-            MainFrame:TweenSizeAndPosition(UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), "Out", "Quart", 0.3, true)
-            maximized = true
-            Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "square")
-            UI.ResizeHandle.Visible = false
-        else
-            MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out", "Quart", 0.3, true)
-            maximized = false
-            Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "maximize-2")
-            UI.ResizeHandle.Visible = true
-        end
-    end)
+    local iconImage = UI.MaxBtn:FindFirstChild("Icon") -- Bezpieczne szukanie
+    if not iconImage then return end -- Jeśli nie ma ikony, nie rób nic (zapobiega crashowi)
+
+    if not maximized then
+        lastSize = MainFrame.Size
+        lastPos = MainFrame.Position
+        MainFrame:TweenSizeAndPosition(UDim2.new(1, 0, 1, 0), UDim2.new(0.5, 0, 0.5, 0), "Out", "Quart", 0.3, true)
+        maximized = true
+        Icons:Apply(iconImage, "square")
+        UI.ResizeHandle.Visible = false
+    else
+        MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out", "Quart", 0.3, true)
+        maximized = false
+        Icons:Apply(iconImage, "maximize-2")
+        UI.ResizeHandle.Visible = true
+    end
+end)
 
     -- 8. Resize Handle
     local ResizeHandle = Instance.new("TextButton")
