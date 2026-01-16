@@ -173,21 +173,32 @@ function Window:Create(config)
     -- --- LOGIKA MAKSYMALIZACJI ---
     local maximized = false
     local lastSize, lastPos
-    UI.MaxBtn.MouseButton1Click:Connect(function()
-        if not maximized then
-            lastSize = MainFrame.Size
-            lastPos = MainFrame.Position
-            MainFrame:TweenSizeAndPosition(UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), "Out", "Quart", 0.3, true)
-            maximized = true
-            Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "square")
-            UI.ResizeHandle.Visible = false
-        else
-            MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out", "Quart", 0.3, true)
-            maximized = false
-            Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "maximize-2")
-            UI.ResizeHandle.Visible = true
-        end
-    end)
+    -- W Window.lua sekcja MaxBtn
+UI.MaxBtn.MouseButton1Click:Connect(function()
+    if not maximized then
+        lastSize = MainFrame.Size
+        lastPos = MainFrame.Position
+        
+        -- Cel: Cały ekran (1,1) i pozycja na samym środku (0.5, 0.5)
+        MainFrame:TweenSizeAndPosition(
+            UDim2.new(1, 0, 1, 0), 
+            UDim2.new(0.5, 0, 0.5, 0), -- Środek ekranu
+            "Out", "Quart", 0.3, true
+        )
+        
+        maximized = true
+        local icon = UI.MaxBtn:FindFirstChild("Icon")
+        if icon then Icons:Apply(icon, "square") end
+        UI.ResizeHandle.Visible = false
+    else
+        -- Powrót do zapamiętanych wartości
+        MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out", "Quart", 0.3, true)
+        maximized = false
+        local icon = UI.MaxBtn:FindFirstChild("Icon")
+        if icon then Icons:Apply(icon, "maximize-2") end
+        UI.ResizeHandle.Visible = true
+    end
+end)
 
     -- 8. Resize Handle
     local ResizeHandle = Instance.new("TextButton")

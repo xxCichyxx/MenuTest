@@ -54,15 +54,28 @@ function Interactions:MakeResizable(handle, mainFrame, minX, minY)
             local moveCon
             local endCon
 
-            moveCon = UIS.InputChanged:Connect(function(moveInput)
-                if resizing and (moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch) then
-                    local delta = moveInput.Position - startInputPos
-                    local newX = math.max(minX, startSize.X + delta.X)
-                    local newY = math.max(minY, startSize.Y + delta.Y)
-                    
-                    mainFrame.Size = UDim2.new(0, newX, 0, newY)
-                end
-            end)
+            -- W pliku src/Interactions.lua
+moveCon = UIS.InputChanged:Connect(function(moveInput)
+    if resizing and (moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch) then
+        local delta = moveInput.Position - startInputPos
+        local newX = math.max(minX, startSize.X + delta.X)
+        local newY = math.max(minY, startSize.Y + delta.Y)
+        
+        -- Skalujemy rozmiar
+        mainFrame.Size = UDim2.new(0, newX, 0, newY)
+        
+        -- KLUCZ: Ponieważ AnchorPoint to (0.5, 0.5), musimy przesuwać pozycję o połowę zmiany rozmiaru,
+        -- aby lewy górny róg wydawał się zablokowany.
+        local diffX = (newX - startSize.X) / 2
+        local diffY = (newY - startSize.Y) / 2
+        
+        -- Używamy offsetów do aktualizacji pozycji startowej
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset + diffX, 
+            startPos.Y.Scale, startPos.Y.Offset + diffY
+        )
+    end
+end)
 
             endCon = UIS.InputEnded:Connect(function(endInput)
                 if endInput.UserInputType == Enum.UserInputType.MouseButton1 or endInput.UserInputType == Enum.UserInputType.Touch then
