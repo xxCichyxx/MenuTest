@@ -228,46 +228,46 @@ function Window:Create(config)
     if isTouch then
         local MobileToggle = Instance.new("TextButton")
         MobileToggle.Name = "MobileToggle"
-        MobileToggle.Size = UDim2.new(0, 50, 0, 50)
-        MobileToggle.Position = UDim2.new(0, 50, 0.5, -25) -- Lewa strona ekranu
-        MobileToggle.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        -- Zwiększamy wysokość (Y) do 65, żeby zmieścić napis pod ikoną
+        MobileToggle.Size = UDim2.new(0, 55, 0, 65) 
+        MobileToggle.Position = UDim2.new(0, 20, 0.5, -32)
+        MobileToggle.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
         MobileToggle.BorderSizePixel = 0
         MobileToggle.Text = ""
         MobileToggle.ZIndex = 100
         MobileToggle.Parent = ScreenGui
         UI.MobileToggle = MobileToggle
 
-        -- Zaokrąglenie i obramowanie przycisku
-        Instance.new("UICorner", MobileToggle).CornerRadius = UDim.new(0, 12)
+        Instance.new("UICorner", MobileToggle).CornerRadius = UDim.new(0, 10)
         local Stroke = Instance.new("UIStroke", MobileToggle)
-        Stroke.Color = Color3.fromRGB(80, 80, 80)
+        Stroke.Color = Color3.fromRGB(60, 60, 60)
         Stroke.Thickness = 1.5
 
-        -- Ikona dla przycisku mobilnego
+        -- Ikona - przesunięta lekko do góry
         local MobileIcon = Instance.new("ImageLabel")
         MobileIcon.Name = "Icon"
-        MobileIcon.Size = UDim2.new(0, 25, 0, 25)
-        MobileIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+        MobileIcon.Size = UDim2.new(0, 22, 0, 22)
+        MobileIcon.Position = UDim2.new(0.5, 0, 0.4, 0) -- Wyżej
         MobileIcon.AnchorPoint = Vector2.new(0.5, 0.5)
         MobileIcon.BackgroundTransparency = 1
         MobileIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
         MobileIcon.Parent = MobileToggle
-        Icons:Apply(MobileIcon, "menu") -- Ikona burger menu
+        Icons:Apply(MobileIcon, "menu")
 
-        -- Tekst pomocniczy pod przyciskiem (opcjonalne)
+        -- Napis - teraz wewnątrz czarnego przycisku na dole
         local ToggleText = Instance.new("TextLabel")
         ToggleText.Name = "MobileToggleText"
         ToggleText.Size = UDim2.new(1, 0, 0, 20)
-        ToggleText.Position = UDim2.new(0, 0, 1, 5)
+        ToggleText.Position = UDim2.new(0.5, 0, 0.75, 0) -- Na dole przycisku
+        ToggleText.AnchorPoint = Vector2.new(0.5, 0.5)
         ToggleText.BackgroundTransparency = 1
-        ToggleText.Text = "MENU"
+        ToggleText.Text = "CLOSE" -- Domyślnie Close, bo menu startuje otwarte
         ToggleText.Font = Enum.Font.GothamBold
-        ToggleText.TextSize = 10
-        ToggleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        ToggleText.TextSize = 9
+        ToggleText.TextColor3 = Color3.fromRGB(255, 100, 100) -- Czerwony na start
         ToggleText.Parent = MobileToggle
         UI.MobileToggleText = ToggleText
 
-        -- Sprawienie, że przycisk mobilny można przesuwać (żeby graczowi nie przeszkadzał)
         Interactions:MakeDraggable(MobileToggle, MobileToggle)
     end
 
