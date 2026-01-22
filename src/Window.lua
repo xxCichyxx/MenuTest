@@ -17,49 +17,42 @@ function Window:Create(config)
     
     -- 1. USTALANIE LOKALIZACJI I RESET STAREGO GUI
     local ProtectedLocation = nil
-    local success, _ = pcall(function() ProtectedLocation = CoreGui end)
+    -- Próba ukrycia głębiej w strukturach RobloxGui
+    local success, _ = pcall(function() 
+        ProtectedLocation = game:GetService("CoreGui"):FindFirstChild("RobloxGui") or game:GetService("CoreGui")
+    end)
     if not success then ProtectedLocation = Players.LocalPlayer:WaitForChild("PlayerGui") end
 
+    -- 2. SZUKANIE I USUWANIE STARYCH WERSJI (Bez BoolValue)
+    -- Szukamy ScreenGui, które mają dokładnie nasze "MainFrame" w środku
     for _, child in pairs(ProtectedLocation:GetChildren()) do
-        if child:IsA("ScreenGui") and child:FindFirstChild("XHUB_IDENTIFIER") then
-            child:Destroy()
+        if child:IsA("ScreenGui") and child:FindFirstChild("MainFrame") then
+            -- Dodatkowe sprawdzenie, czy MainFrame ma TopBar (nasze "DNA" skryptu)
+            if child.MainFrame:FindFirstChild("TopBar") then
+                child:Destroy()
+            end
         end
     end
 
-    local function generateName()
-        local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        local randomName = ""
-        for i = 1, 15 do
-            local rand = math.random(1, #chars)
-            randomName = randomName .. string.sub(chars, rand, rand)
-        end
-        return randomName
+    -- 3. GENEROWANIE SYSTEMOWEJ NAZWY (np. imitacja procesów Roblox)
+    local function generateFakeName()
+        local systemNames = {"ChatServiceLayer", "VoiceConnector", "TelemetryClient", "InputHandler", "NotificationProxy"}
+        return systemNames[math.random(1, #systemNames)] .. "_" .. math.random(1000, 9999)
     end
-
-    -- 2. ScreenGui
+    -- 4. ScreenGui - Maksymalne maskowanie
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = generateName()
+    ScreenGui.Name = generateFakeName()
     ScreenGui.ResetOnSpawn = false
-    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.DisplayOrder = 999 -- Zawsze na wierzchu
+    ScreenGui.IgnoreGuiInset = true -- Często pomijane przez proste exploity
+    
+    -- Próba wyłączenia widoczności w eksploratorach (zależnie od uprawnień środowiska)
+    pcall(function()
+        ScreenGui.Archivable = false 
+    end)
+    
     ScreenGui.Parent = ProtectedLocation
     UI.ScreenGui = ScreenGui
-
-    local Tag = Instance.new("BoolValue")
-    Tag.Name = "XHUB_IDENTIFIER"
-    Tag.Parent = ScreenGui
-
-    -- 3. Shadow (Cień)
-    local Shadow = Instance.new("ImageLabel")
-    Shadow.Name = "Shadow"
-    Shadow.BackgroundTransparency = 1
-    Shadow.Image = "rbxassetid://6014264795"
-    Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-    Shadow.ImageTransparency = 0.4
-    Shadow.ScaleType = Enum.ScaleType.Slice
-    Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
-    Shadow.ZIndex = 0
-    Shadow.Parent = ScreenGui
-    UI.Shadow = Shadow
 
     -- 4. MainFrame
     local MainFrame = Instance.new("Frame")
