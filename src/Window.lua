@@ -261,7 +261,7 @@ function Window:Create(config)
         ToggleText.Position = UDim2.new(0.5, 0, 0.75, 0) -- Na dole przycisku
         ToggleText.AnchorPoint = Vector2.new(0.5, 0.5)
         ToggleText.BackgroundTransparency = 1
-        ToggleText.Text = "CLOSE" -- Domyślnie Close, bo menu startuje otwarte
+        ToggleText.Text = "CLOSE" -- Domyślnie Close, bo menu startuje otwart
         ToggleText.Font = Enum.Font.GothamBold
         ToggleText.TextSize = 9
         ToggleText.TextColor3 = Color3.fromRGB(255, 100, 100) -- Czerwony na start
