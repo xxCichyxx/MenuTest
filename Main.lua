@@ -34,7 +34,9 @@ function XHUB:CreateWindow(options)
     -- 2. Tworzenie Okna (Window.lua teraz samo dodaje ikony i interakcje!)
     local UI = WindowModule:Create({
         Name = Name,
-        TestMobile = TestMobile
+        TestMobile = TestMobile,
+        Tittle = Config.Tittle or "",
+        TittlePos = Config.TittlePos or "Left"
     })
     UI.ScreenGui.Parent = ProtectedLocation
 

@@ -76,6 +76,38 @@ function Window:Create(config)
     TopBar.Parent = MainFrame
     UI.TopBar = TopBar
 
+    if config.Tittle and config.Tittle ~= "" then
+        local TopTitle = Instance.new("TextLabel")
+        TopTitle.Name = "TopTitle"
+        TopTitle.Text = config.Tittle
+        TopTitle.Font = Enum.Font.GothamMedium
+        TopTitle.TextSize = 14
+        TopTitle.TextColor3 = Color3.fromRGB(180, 180, 180) -- Lekko szary dla elegancji
+        TopTitle.BackgroundTransparency = 1
+        
+        -- Ustawienie pozycji względem przycisków (Controls mają szerokość 105)
+        -- Dajemy Size tak, aby kończył się przed przyciskami
+        TopTitle.Size = UDim2.new(1, -115, 1, 0) 
+        TopTitle.Position = UDim2.new(0, 10, 0, 0) -- 10px odstępu od lewej krawędzi
+        TopTitle.Parent = TopBar
+
+        -- Logika pozycjonowania tekstu
+        if config.TittlePos == "Center" then
+            TopTitle.TextXAlignment = Enum.TextXAlignment.Center
+            -- Aby Center działał idealnie względem całego menu, 
+            -- musimy skorygować pozycję, by nie brał pod uwagę marginesu przycisków
+            TopTitle.Position = UDim2.new(0, 0, 0, 0)
+            TopTitle.Size = UDim2.new(1, 0, 1, 0)
+            -- Zindex niższy niż Controls, żeby nie blokował klikania przycisków
+            TopTitle.ZIndex = 4 
+        else
+            -- Domyślnie Left
+            TopTitle.TextXAlignment = Enum.TextXAlignment.Left
+        end
+        
+        UI.TopTitle = TopTitle
+    end
+
     -- PRZEDZIAŁKA POZIOMA (TopLine)
     local TopLine = Instance.new("Frame")
     TopLine.Size = UDim2.new(1, 0, 0, 1)
