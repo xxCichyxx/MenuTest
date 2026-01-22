@@ -173,16 +173,31 @@ function Window:Create(config)
     -- --- LOGIKA MAKSYMALIZACJI ---
     local maximized = false
     local lastSize, lastPos
+
     UI.MaxBtn.MouseButton1Click:Connect(function()
         if not maximized then
+            -- Zapisujemy stan przed powiększeniem
             lastSize = MainFrame.Size
             lastPos = MainFrame.Position
-            MainFrame:TweenSizeAndPosition(UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), "Out", "Quart", 0.3, true)
+            
+            -- Tweenujemy do pełnego ekranu (1,0, 1,0) i ustawiamy środek na środku (0.5, 0, 0.5, 0)
+            MainFrame:TweenSizeAndPosition(
+                UDim2.new(1, 0, 1, 0), 
+                UDim2.new(0.5, 0, 0.5, 0), 
+                "Out", "Quart", 0.3, true
+            )
+            
             maximized = true
             Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "square")
             UI.ResizeHandle.Visible = false
         else
-            MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out", "Quart", 0.3, true)
+            -- Powrót do poprzedniego rozmiaru i pozycji
+            MainFrame:TweenSizeAndPosition(
+                lastSize, 
+                lastPos, 
+                "Out", "Quart", 0.3, true
+            )
+            
             maximized = false
             Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "maximize-2")
             UI.ResizeHandle.Visible = true
