@@ -5,6 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 
 -- Ładowanie modułów
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
@@ -13,6 +14,10 @@ local Interactions = loadstring(game:HttpGet(baseUrl .. "Interactions.lua"))()
 
 function Window:Create(config)
     local UI = {}
+    UI.Tabs = {}
+    UI.Pages = {}
+    UI.SelectedTab = nil
+
     local isTouch = UserInputService.TouchEnabled or config.TestMobile
     
     -- 1. USTALANIE LOKALIZACJI I RESET STAREGO GUI
@@ -48,6 +53,18 @@ function Window:Create(config)
     Tag.Name = "XHUB_IDENTIFIER"
     Tag.Parent = ScreenGui
 
+    -- 3. Shadow (Cień) - Dodano brakującą definicję
+    local Shadow = Instance.new("ImageLabel")
+    Shadow.Name = "Shadow"
+    Shadow.BackgroundTransparency = 1
+    Shadow.ZIndex = 0
+    Shadow.Image = "rbxassetid://10385930982" -- Blur image
+    Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    Shadow.ImageTransparency = 0.5
+    Shadow.ScaleType = Enum.ScaleType.Slice
+    Shadow.SliceCenter = Rect.new(49, 49, 50, 50)
+    Shadow.Parent = ScreenGui
+    
     -- 4. MainFrame
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
@@ -82,33 +99,24 @@ function Window:Create(config)
         TopTitle.Text = config.Tittle
         TopTitle.Font = Enum.Font.GothamMedium
         TopTitle.TextSize = 14
-        TopTitle.TextColor3 = Color3.fromRGB(180, 180, 180) -- Lekko szary dla elegancji
+        TopTitle.TextColor3 = Color3.fromRGB(180, 180, 180) 
         TopTitle.BackgroundTransparency = 1
-        
-        -- Ustawienie pozycji względem przycisków (Controls mają szerokość 105)
-        -- Dajemy Size tak, aby kończył się przed przyciskami
         TopTitle.Size = UDim2.new(1, -115, 1, 0) 
-        TopTitle.Position = UDim2.new(0, 10, 0, 0) -- 10px odstępu od lewej krawędzi
+        TopTitle.Position = UDim2.new(0, 10, 0, 0) 
         TopTitle.Parent = TopBar
 
-        -- Logika pozycjonowania tekstu
         if config.TittlePos == "Center" then
             TopTitle.TextXAlignment = Enum.TextXAlignment.Center
-            -- Aby Center działał idealnie względem całego menu, 
-            -- musimy skorygować pozycję, by nie brał pod uwagę marginesu przycisków
             TopTitle.Position = UDim2.new(0, 0, 0, 0)
             TopTitle.Size = UDim2.new(1, 0, 1, 0)
-            -- Zindex niższy niż Controls, żeby nie blokował klikania przycisków
             TopTitle.ZIndex = 4 
         else
-            -- Domyślnie Left
             TopTitle.TextXAlignment = Enum.TextXAlignment.Left
         end
         
         UI.TopTitle = TopTitle
     end
 
-    -- PRZEDZIAŁKA POZIOMA (TopLine)
     local TopLine = Instance.new("Frame")
     TopLine.Size = UDim2.new(1, 0, 0, 1)
     TopLine.Position = UDim2.new(0, 0, 0, 32)
@@ -126,7 +134,6 @@ function Window:Create(config)
     Sidebar.Parent = MainFrame
     UI.Sidebar = Sidebar
 
-    -- PRZEDZIAŁKA PIONOWA (VerticalLine)
     local VerticalLine = Instance.new("Frame")
     VerticalLine.Size = UDim2.new(0, 1, 1, 0)
     VerticalLine.Position = UDim2.new(1, 0, 0, 0)
@@ -145,7 +152,6 @@ function Window:Create(config)
     Title.BackgroundTransparency = 1
     Title.Parent = Sidebar
 
-    -- PRZEDZIAŁKA POD TYTUŁEM (TitleLine)
     local TitleLine = Instance.new("Frame")
     TitleLine.Size = UDim2.new(1, 0, 0, 1)
     TitleLine.Position = UDim2.new(0, 0, 0, 45)
@@ -153,8 +159,36 @@ function Window:Create(config)
     TitleLine.BorderSizePixel = 0
     TitleLine.ZIndex = 10
     TitleLine.Parent = Sidebar
+    
+    -- 7. TabList (Kontener na zakładki)
+    local TabList = Instance.new("ScrollingFrame")
+    TabList.Name = "TabList"
+    TabList.Size = UDim2.new(1, 0, 1, -46)
+    TabList.Position = UDim2.new(0, 0, 0, 46)
+    TabList.BackgroundTransparency = 1
+    TabList.BorderSizePixel = 0
+    TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabList.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
+    TabList.ScrollBarThickness = 3
+    TabList.Parent = Sidebar
+    UI.TabList = TabList
 
-    -- 7. Controls (Przyciski kontrolne)
+    local TabListLayout = Instance.new("UIListLayout")
+    TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    TabListLayout.Padding = UDim.new(0, 5)
+    TabListLayout.Parent = TabList
+
+    -- 8. PagesContainer (Kontener na strony)
+    local PagesContainer = Instance.new("Frame")
+    PagesContainer.Name = "PagesContainer"
+    PagesContainer.Size = UDim2.new(1, -200, 1, -32)
+    PagesContainer.Position = UDim2.new(0, 200, 0, 32)
+    PagesContainer.BackgroundTransparency = 1
+    PagesContainer.ClipsDescendants = true
+    PagesContainer.Parent = MainFrame
+    UI.PagesContainer = PagesContainer
+    
+    -- 9. Controls (Przyciski kontrolne)
     local Controls = Instance.new("Frame")
     Controls.Name = "Controls"
     Controls.Size = UDim2.new(0, 105, 1, 0)
@@ -189,41 +223,26 @@ function Window:Create(config)
     UI.MaxBtn = createIconBtn("maximize-2", UDim2.new(0, 35, 0, 0))
     UI.CloseBtn = createIconBtn("x", UDim2.new(0, 70, 0, 0))
 
-    -- --- LOGIKA MAKSYMALIZACJI ---
     local maximized = false
     local lastSize, lastPos
 
     UI.MaxBtn.MouseButton1Click:Connect(function()
         if not maximized then
-            -- Zapisujemy stan przed powiększeniem
             lastSize = MainFrame.Size
             lastPos = MainFrame.Position
-            
-            -- Tweenujemy do pełnego ekranu (1,0, 1,0) i ustawiamy środek na środku (0.5, 0, 0.5, 0)
-            MainFrame:TweenSizeAndPosition(
-                UDim2.new(1, 0, 1, 0), 
-                UDim2.new(0.5, 0, 0.5, 0), 
-                "Out", "Quart", 0.3, true
-            )
-            
+            MainFrame:TweenSizeAndPosition(UDim2.new(1, 0, 1, 0), UDim2.new(0.5, 0, 0.5, 0), "Out", "Quart", 0.3, true)
             maximized = true
             Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "square")
             UI.ResizeHandle.Visible = false
         else
-            -- Powrót do poprzedniego rozmiaru i pozycji
-            MainFrame:TweenSizeAndPosition(
-                lastSize, 
-                lastPos, 
-                "Out", "Quart", 0.3, true
-            )
-            
+            MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out", "Quart", 0.3, true)
             maximized = false
             Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "maximize-2")
             UI.ResizeHandle.Visible = true
         end
     end)
 
-    -- 8. Resize Handle
+    -- 10. Resize Handle
     local ResizeHandle = Instance.new("TextButton")
     ResizeHandle.Name = "ResizeHandle"
     ResizeHandle.Size = UDim2.new(0, 25, 0, 25)
@@ -244,11 +263,9 @@ function Window:Create(config)
     ResizeIcon.Parent = ResizeHandle
     Icons:Apply(ResizeIcon, "arrow-down-right")
 
-    -- --- AKTYWACJA INTERAKCJI ---
     Interactions:MakeDraggable(TopBar, MainFrame)
     Interactions:MakeResizable(ResizeHandle, MainFrame, 600, 350)
 
-    -- Synchronizacja Cienia
     RunService.RenderStepped:Connect(function()
         if MainFrame.Visible then
             local offset = 35
@@ -257,10 +274,11 @@ function Window:Create(config)
         end
         Shadow.Visible = MainFrame.Visible
     end)
+    
+    -- 11. Logika mobilna i przełącznik
     if isTouch then
         local MobileToggle = Instance.new("TextButton")
         MobileToggle.Name = "MobileToggle"
-        -- Zwiększamy wysokość (Y) do 65, żeby zmieścić napis pod ikoną
         MobileToggle.Size = UDim2.new(0, 55, 0, 65) 
         MobileToggle.Position = UDim2.new(0, 20, 0.5, -32)
         MobileToggle.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
@@ -275,33 +293,141 @@ function Window:Create(config)
         Stroke.Color = Color3.fromRGB(60, 60, 60)
         Stroke.Thickness = 1.5
 
-        -- Ikona - przesunięta lekko do góry
         local MobileIcon = Instance.new("ImageLabel")
         MobileIcon.Name = "Icon"
         MobileIcon.Size = UDim2.new(0, 22, 0, 22)
-        MobileIcon.Position = UDim2.new(0.5, 0, 0.4, 0) -- Wyżej
+        MobileIcon.Position = UDim2.new(0.5, 0, 0.4, 0)
         MobileIcon.AnchorPoint = Vector2.new(0.5, 0.5)
         MobileIcon.BackgroundTransparency = 1
         MobileIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
         MobileIcon.Parent = MobileToggle
         Icons:Apply(MobileIcon, "menu")
 
-        -- Napis - teraz wewnątrz czarnego przycisku na dole
         local ToggleText = Instance.new("TextLabel")
         ToggleText.Name = "MobileToggleText"
         ToggleText.Size = UDim2.new(1, 0, 0, 20)
-        ToggleText.Position = UDim2.new(0.5, 0, 0.75, 0) -- Na dole przycisku
+        ToggleText.Position = UDim2.new(0.5, 0, 0.75, 0)
         ToggleText.AnchorPoint = Vector2.new(0.5, 0.5)
         ToggleText.BackgroundTransparency = 1
-        ToggleText.Text = "CLOSE" -- Domyślnie Close, bo menu startuje otwart
+        ToggleText.Text = "CLOSE"
         ToggleText.Font = Enum.Font.GothamBold
         ToggleText.TextSize = 9
-        ToggleText.TextColor3 = Color3.fromRGB(255, 100, 100) -- Czerwony na start
+        ToggleText.TextColor3 = Color3.fromRGB(255, 100, 100)
         ToggleText.Parent = MobileToggle
         UI.MobileToggleText = ToggleText
 
+        MainFrame.Visible = true -- Domyślnie otwarte
+
+        MobileToggle.MouseButton1Click:Connect(function()
+            local isVisible = MainFrame.Visible
+            MainFrame.Visible = not isVisible
+            Shadow.Visible = not isVisible
+
+            if isVisible then
+                ToggleText.Text = "OPEN"
+                ToggleText.TextColor3 = Color3.fromRGB(100, 255, 100) -- Zielony
+            else
+                ToggleText.Text = "CLOSE"
+                ToggleText.TextColor3 = Color3.fromRGB(255, 100, 100) -- Czerwony
+            end
+        end)
+
         Interactions:MakeDraggable(MobileToggle, MobileToggle)
     end
+    
+    --- 12. SYSTEM ZAKŁADEK (TAB SYSTEM) ---
+    function UI:CreateTab(name, icon)
+        local Tab = {}
+        
+        -- Tworzenie przycisku w Sidebar
+        local TabButton = Instance.new("TextButton")
+        TabButton.Name = name
+        TabButton.Size = UDim2.new(1, 0, 0, 40)
+        TabButton.BackgroundTransparency = 1
+        TabButton.Text = ""
+        TabButton.LayoutOrder = #UI.Tabs + 1
+        TabButton.Parent = TabList
+
+        local TabIcon = Instance.new("ImageLabel")
+        TabIcon.Name = "Icon"
+        TabIcon.Size = UDim2.new(0, 18, 0, 18)
+        TabIcon.Position = UDim2.new(0, 20, 0.5, 0)
+        TabIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+        TabIcon.BackgroundTransparency = 1
+        TabIcon.ImageColor3 = Color3.fromRGB(180, 180, 180) -- Kolor nieaktywny
+        TabIcon.Parent = TabButton
+        Icons:Apply(TabIcon, icon)
+        
+        local TabLabel = Instance.new("TextLabel")
+        TabLabel.Name = "Label"
+        TabLabel.Size = UDim2.new(1, -40, 1, 0)
+        TabLabel.Position = UDim2.new(0, 40, 0, 0)
+        TabLabel.BackgroundTransparency = 1
+        TabLabel.Font = Enum.Font.GothamMedium
+        TabLabel.Text = name
+        TabLabel.TextSize = 14
+        TabLabel.TextColor3 = Color3.fromRGB(180, 180, 180) -- Kolor nieaktywny
+        TabLabel.TextXAlignment = Enum.TextXAlignment.Left
+        TabLabel.Parent = TabButton
+        
+        -- Tworzenie strony (Page)
+        local Page = Instance.new("ScrollingFrame")
+        Page.Name = name .. "Page"
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.BackgroundTransparency = 1
+        Page.BorderSizePixel = 0
+        Page.Visible = false -- Ukryta domyślnie
+        Page.CanvasSize = UDim2.new(0,0,0,0)
+        Page.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
+        Page.ScrollBarThickness = 3
+        Page.Parent = PagesContainer
+
+        Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 10)
+        Instance.new("UIPadding", Page).PaddingRight = UDim.new(0, 10)
+        
+        -- Logika wyboru zakładki
+        TabButton.MouseButton1Click:Connect(function()
+            if UI.SelectedTab == TabButton then return end
+            
+            -- Reset poprzedniej zakładki
+            if UI.SelectedTab then
+                local prevTabObjects = {UI.SelectedTab:FindFirstChild("Icon"), UI.SelectedTab:FindFirstChild("Label")}
+                TweenService:Create(prevTabObjects[1], TweenInfo.new(0.2), {ImageColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+                TweenService:Create(prevTabObjects[2], TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
+            end
+            
+            -- Ukryj wszystkie strony
+            for _, p in pairs(UI.Pages) do
+                p.Visible = false
+            end
+            
+            -- Pokaż wybraną stronę
+            Page.Visible = true
+            
+            -- Aktywuj nową zakładkę
+            local currentTabObjects = {TabIcon, TabLabel}
+            TweenService:Create(currentTabObjects[1], TweenInfo.new(0.2), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            TweenService:Create(currentTabObjects[2], TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            
+            UI.SelectedTab = TabButton
+        end)
+        
+        table.insert(UI.Tabs, TabButton)
+        table.insert(UI.Pages, Page)
+        
+        Tab.Button = TabButton
+        Tab.Page = Page
+        
+        -- Jeśli to pierwsza zakładka, wybierz ją automatycznie
+        if #UI.Tabs == 1 then
+            TabButton.MouseButton1Click:Fire()
+        end
+        
+        return Tab
+    end
+    
+    -- Domyślna zakładka "Dashboard"
+    UI:CreateTab("Dashboard", "layout-dashboard")
 
     return UI
 end
