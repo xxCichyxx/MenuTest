@@ -225,6 +225,51 @@ function Window:Create(config)
         end
         Shadow.Visible = MainFrame.Visible
     end)
+    if isTouch then
+        local MobileToggle = Instance.new("TextButton")
+        MobileToggle.Name = "MobileToggle"
+        MobileToggle.Size = UDim2.new(0, 50, 0, 50)
+        MobileToggle.Position = UDim2.new(0, 50, 0.5, -25) -- Lewa strona ekranu
+        MobileToggle.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        MobileToggle.BorderSizePixel = 0
+        MobileToggle.Text = ""
+        MobileToggle.ZIndex = 100
+        MobileToggle.Parent = ScreenGui
+        UI.MobileToggle = MobileToggle
+
+        -- Zaokrąglenie i obramowanie przycisku
+        Instance.new("UICorner", MobileToggle).CornerRadius = UDim.new(0, 12)
+        local Stroke = Instance.new("UIStroke", MobileToggle)
+        Stroke.Color = Color3.fromRGB(80, 80, 80)
+        Stroke.Thickness = 1.5
+
+        -- Ikona dla przycisku mobilnego
+        local MobileIcon = Instance.new("ImageLabel")
+        MobileIcon.Name = "Icon"
+        MobileIcon.Size = UDim2.new(0, 25, 0, 25)
+        MobileIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
+        MobileIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+        MobileIcon.BackgroundTransparency = 1
+        MobileIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+        MobileIcon.Parent = MobileToggle
+        Icons:Apply(MobileIcon, "menu") -- Ikona burger menu
+
+        -- Tekst pomocniczy pod przyciskiem (opcjonalne)
+        local ToggleText = Instance.new("TextLabel")
+        ToggleText.Name = "MobileToggleText"
+        ToggleText.Size = UDim2.new(1, 0, 0, 20)
+        ToggleText.Position = UDim2.new(0, 0, 1, 5)
+        ToggleText.BackgroundTransparency = 1
+        ToggleText.Text = "MENU"
+        ToggleText.Font = Enum.Font.GothamBold
+        ToggleText.TextSize = 10
+        ToggleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        ToggleText.Parent = MobileToggle
+        UI.MobileToggleText = ToggleText
+
+        -- Sprawienie, że przycisk mobilny można przesuwać (żeby graczowi nie przeszkadzał)
+        Interactions:MakeDraggable(MobileToggle, MobileToggle)
+    end
 
     return UI
 end

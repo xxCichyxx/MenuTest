@@ -38,7 +38,7 @@ end
 
 function Interactions:MakeResizable(handle, mainFrame, minX, minY)
     local resizing = false
-    local maxX, maxY = 1200, 800
+    local maxX, maxY = 1600, 800
 
     handle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
