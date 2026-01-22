@@ -9,23 +9,13 @@ end
 
 function Interactions:MakeDraggable(clickObj, moveObj)
     local dragging = false
-    local dragStart = nil
-    local startPos = nil
+    local dragStart, startPos
 
     clickObj.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = moveObj.Position
-            
-            -- Rozłączenie przeciągania, gdy puścimy przycisk
-            local connection
-            connection = input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                    connection:Disconnect()
-                end
-            end)
         end
     end)
 
@@ -33,50 +23,51 @@ function Interactions:MakeDraggable(clickObj, moveObj)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             moveObj.Position = UDim2.new(
-                startPos.X.Scale, 
-                startPos.X.Offset + delta.X, 
-                startPos.Y.Scale, 
-                startPos.Y.Offset + delta.Y
+                startPos.X.Scale, startPos.X.Offset + delta.X, 
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
             )
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
         end
     end)
 end
 
 function Interactions:MakeResizable(handle, mainFrame, minX, minY)
     local resizing = false
-    
+    local maxX, maxY = 1200, 800
+
     handle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             resizing = true
             local startSize = mainFrame.AbsoluteSize
+            local startPos = mainFrame.Position
             local startInputPos = input.Position
             
             local moveCon
+            moveCon = UIS.InputChanged:Connect(function(moveInput)
+                if resizing and (moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch) then
+                    local delta = moveInput.Position - startInputPos
+                    
+                    local newX = math.clamp(startSize.X + delta.X, minX, maxX)
+                    local newY = math.clamp(startSize.Y + delta.Y, minY, maxY)
+                    
+                    local diffX = newX - startSize.X
+                    local diffY = newY - startSize.Y
+                    
+                    -- Aktualizacja rozmiaru i kompensacja pozycji dla AnchorPoint 0.5
+                    mainFrame.Size = UDim2.new(0, newX, 0, newY)
+                    mainFrame.Position = UDim2.new(
+                        startPos.X.Scale, startPos.X.Offset + (diffX / 2), 
+                        startPos.Y.Scale, startPos.Y.Offset + (diffY / 2)
+                    )
+                end
+            end)
+
             local endCon
-
-            -- W pliku src/Interactions.lua
-moveCon = UIS.InputChanged:Connect(function(moveInput)
-    if resizing and (moveInput.UserInputType == Enum.UserInputType.MouseMovement or moveInput.UserInputType == Enum.UserInputType.Touch) then
-        local delta = moveInput.Position - startInputPos
-        local newX = math.max(minX, startSize.X + delta.X)
-        local newY = math.max(minY, startSize.Y + delta.Y)
-        
-        -- Skalujemy rozmiar
-        mainFrame.Size = UDim2.new(0, newX, 0, newY)
-        
-        -- KLUCZ: Ponieważ AnchorPoint to (0.5, 0.5), musimy przesuwać pozycję o połowę zmiany rozmiaru,
-        -- aby lewy górny róg wydawał się zablokowany.
-        local diffX = (newX - startSize.X) / 2
-        local diffY = (newY - startSize.Y) / 2
-        
-        -- Używamy offsetów do aktualizacji pozycji startowej
-        mainFrame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + diffX, 
-            startPos.Y.Scale, startPos.Y.Offset + diffY
-        )
-    end
-end)
-
             endCon = UIS.InputEnded:Connect(function(endInput)
                 if endInput.UserInputType == Enum.UserInputType.MouseButton1 or endInput.UserInputType == Enum.UserInputType.Touch then
                     resizing = false
