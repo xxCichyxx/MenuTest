@@ -96,15 +96,4 @@ function Interactions:MakeResizable(handle, mainFrame, minX, minY)
     end)
 end
 
-            endCon = UIS.InputEnded:Connect(function(endInput)
-                if endInput.UserInputType == Enum.UserInputType.MouseButton1 or endInput.UserInputType == Enum.UserInputType.Touch then
-                    resizing = false
-                    moveCon:Disconnect()
-                    endCon:Disconnect()
-                end
-            end)
-        end
-    end)
-end
-
 return Interactions
