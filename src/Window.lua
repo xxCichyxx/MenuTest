@@ -21,7 +21,7 @@ function Window:Create(config)
     if not success then ProtectedLocation = Players.LocalPlayer:WaitForChild("PlayerGui") end
 
     for _, child in pairs(ProtectedLocation:GetChildren()) do
-        if child:IsA("ScreenGui") and child:FindFirstChild("X") then
+        if child:IsA("ScreenGui") and child:FindFirstChild("XHUB_IDENTIFIER") then
             child:Destroy()
         end
     end
@@ -45,7 +45,7 @@ function Window:Create(config)
     UI.ScreenGui = ScreenGui
 
     local Tag = Instance.new("BoolValue")
-    Tag.Name = "X"
+    Tag.Name = "XHUB_IDENTIFIER"
     Tag.Parent = ScreenGui
 
     -- 4. MainFrame
