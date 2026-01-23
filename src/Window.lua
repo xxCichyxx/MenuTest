@@ -428,7 +428,6 @@ function Window:Create(config)
     
     -- Domyślna zakładka "Dashboard"
     UI:CreateTab("Dashboard", "layout-dashboard")
-    UI:CreateTab("Settings", "settings")
 
     return UI
 end
