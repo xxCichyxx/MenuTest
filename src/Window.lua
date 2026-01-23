@@ -337,114 +337,125 @@ function Window:Create(config)
     
     --- 12. SYSTEM ZAKŁADEK (TAB SYSTEM) ---
     function UI:CreateTab(name, icon)
-        local Tab = {}
-        
-        -- 1. Przycisk w Sidebarze
-        local TabButton = Instance.new("TextButton")
-        TabButton.Name = name
-        TabButton.Size = UDim2.new(1, 0, 0, 40)
-        TabButton.BackgroundTransparency = 1
-        TabButton.Text = ""
-        TabButton.LayoutOrder = #UI.Tabs + 1
-        TabButton.Parent = TabList
+    local Tab = {}
+    
+    -- 1. Główny przycisk zakładki
+    local TabButton = Instance.new("TextButton")
+    TabButton.Name = name
+    TabButton.Size = UDim2.new(1, -10, 0, 38) -- Lekki margines od brzegów sidebaru
+    TabButton.Position = UDim2.new(0, 5, 0, 0)
+    TabButton.BackgroundTransparency = 1
+    TabButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    TabButton.Text = ""
+    TabButton.AutoButtonColor = false
+    TabButton.LayoutOrder = #UI.Tabs + 1
+    TabButton.Parent = TabList
 
-        -- 2. LINIA WSKAŹNIKA (Indicator Line)
-        -- Umieszczamy ją po lewej stronie (X = 0)
-        local Indicator = Instance.new("Frame")
-        Indicator.Name = "Indicator"
-        Indicator.Size = UDim2.new(0, 2, 0, 0) -- Startowa wysokość 0 dla animacji
-        Indicator.Position = UDim2.new(0, 0, 0.5, 0)
-        Indicator.AnchorPoint = Vector2.new(0, 0.5)
-        Indicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Biała linia
-        Indicator.BorderSizePixel = 0
-        Indicator.BackgroundTransparency = 1 -- Startowo niewidoczna
-        Indicator.Parent = TabButton
+    local TabCorner = Instance.new("UICorner", TabButton)
+    TabCorner.CornerRadius = UDim.new(0, 6)
 
-        local TabIcon = Instance.new("ImageLabel")
-        TabIcon.Name = "Icon"
-        TabIcon.Size = UDim2.new(0, 18, 0, 18)
-        TabIcon.Position = UDim2.new(0, 20, 0.5, 0)
-        TabIcon.AnchorPoint = Vector2.new(0.5, 0.5)
-        TabIcon.BackgroundTransparency = 1
-        TabIcon.ImageColor3 = Color3.fromRGB(180, 180, 180)
-        TabIcon.Parent = TabButton
-        Icons:Apply(TabIcon, icon)
-        
-        local TabLabel = Instance.new("TextLabel")
-        TabLabel.Name = "Label"
-        TabLabel.Size = UDim2.new(1, -40, 1, 0)
-        TabLabel.Position = UDim2.new(0, 40, 0, 0)
-        TabLabel.BackgroundTransparency = 1
-        TabLabel.Font = Enum.Font.GothamMedium
-        TabLabel.Text = name
-        TabLabel.TextSize = 14
-        TabLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-        TabLabel.TextXAlignment = Enum.TextXAlignment.Left
-        TabLabel.Parent = TabButton
-        
-        -- 3. Strona (Page)
-        local Page = Instance.new("ScrollingFrame")
-        Page.Name = name .. "Page"
-        Page.Size = UDim2.new(1, 0, 1, 0)
-        Page.BackgroundTransparency = 1
-        Page.BorderSizePixel = 0
-        Page.Visible = false
-        Page.CanvasSize = UDim2.new(0,0,0,0)
-        Page.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
-        Page.ScrollBarThickness = 3
-        Page.Parent = PagesContainer
+    -- 2. LINIA WSKAŹNIKA (Indicator Line) - Ta biała kreska po lewej
+    local Indicator = Instance.new("Frame")
+    Indicator.Name = "Indicator"
+    Indicator.Size = UDim2.new(0, 2, 0, 0) -- Startowa wysokość 0
+    Indicator.Position = UDim2.new(0, -5, 0.5, 0) -- Przesunięta do krawędzi sidebaru
+    Indicator.AnchorPoint = Vector2.new(0, 0.5)
+    Indicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Indicator.BorderSizePixel = 0
+    Indicator.BackgroundTransparency = 1
+    Indicator.Parent = TabButton
+    
+    Instance.new("UICorner", Indicator).CornerRadius = UDim.new(0, 2)
 
-        Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 10)
-        Instance.new("UIPadding", Page).PaddingRight = UDim.new(0, 10)
-        
-        -- 4. FUNKCJA WYBORU (Z ANIMACJĄ LINII)
-        local function Select()
-            if UI.SelectedTab == TabButton then return end
-            
-            -- Reset poprzedniej zakładki
-            if UI.SelectedTab then
-                local prevIcon = UI.SelectedTab:FindFirstChild("Icon")
-                local prevLabel = UI.SelectedTab:FindFirstChild("Label")
-                local prevIndicator = UI.SelectedTab:FindFirstChild("Indicator")
-                
-                TweenService:Create(prevIcon, TweenInfo.new(0.3), {ImageColor3 = Color3.fromRGB(180, 180, 180)}):Play()
-                TweenService:Create(prevLabel, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
-                -- Animacja schowania linii: wysokość do 0 i przeźroczystość do 1
-                TweenService:Create(prevIndicator, TweenInfo.new(0.3), {Size = UDim2.new(0, 2, 0, 0), BackgroundTransparency = 1}):Play()
-            end
-            
-            -- Ukryj strony
-            for _, p in pairs(UI.Pages) do p.Visible = false end
-            
-            -- Aktywuj nową zakładkę
-            Page.Visible = true
-            TweenService:Create(TabIcon, TweenInfo.new(0.3), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-            TweenService:Create(TabLabel, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-            
-            -- Animacja pokazania linii: wysokość do 60% przycisku (24px) i widoczność
-            TweenService:Create(Indicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
-                Size = UDim2.new(0, 2, 0, 24), 
-                BackgroundTransparency = 0
-            }):Play()
-            
-            UI.SelectedTab = TabButton
-        end
+    -- 3. Ikona
+    local TabIcon = Instance.new("ImageLabel")
+    TabIcon.Name = "Icon"
+    TabIcon.Size = UDim2.new(0, 18, 0, 18)
+    TabIcon.Position = UDim2.new(0, 12, 0.5, 0)
+    TabIcon.AnchorPoint = Vector2.new(0, 0.5)
+    TabIcon.BackgroundTransparency = 1
+    TabIcon.ImageColor3 = Color3.fromRGB(150, 150, 150)
+    TabIcon.Parent = TabButton
+    Icons:Apply(TabIcon, icon)
+    
+    -- 4. Tekst
+    local TabLabel = Instance.new("TextLabel")
+    TabLabel.Name = "Label"
+    TabLabel.Size = UDim2.new(1, -45, 1, 0)
+    TabLabel.Position = UDim2.new(0, 40, 0, 0)
+    TabLabel.BackgroundTransparency = 1
+    TabLabel.Font = Enum.Font.GothamMedium
+    TabLabel.Text = name
+    TabLabel.TextSize = 14
+    TabLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    TabLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TabLabel.Parent = TabButton
+    
+    -- 5. Strona (Content)
+    local Page = Instance.new("ScrollingFrame")
+    Page.Name = name .. "Page"
+    Page.Size = UDim2.new(1, 0, 1, 0)
+    Page.BackgroundTransparency = 1
+    Page.BorderSizePixel = 0
+    Page.Visible = false
+    Page.CanvasSize = UDim2.new(0,0,0,0)
+    Page.ScrollBarThickness = 0 -- Ukrywamy scrollbar dla czystego wyglądu Xeno
+    Page.Parent = PagesContainer
 
-        TabButton.MouseButton1Click:Connect(Select)
+    local PageLayout = Instance.new("UIListLayout", Page)
+    PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    PageLayout.Padding = UDim.new(0, 8)
+
+    Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 15)
+    Instance.new("UIPadding", Page).PaddingRight = UDim.new(0, 15)
+    Instance.new("UIPadding", Page).PaddingTop = UDim.new(0, 15)
+    
+    -- 6. Logika wyboru (Animacje jak na zdjęciu)
+    local function Select()
+        if UI.SelectedTab == TabButton then return end
         
-        table.insert(UI.Tabs, TabButton)
-        table.insert(UI.Pages, Page)
-        
-        Tab.Button = TabButton
-        Tab.Page = Page
-        
-        -- Auto-wybór pierwszej zakładki
-        if #UI.Tabs == 1 then
-            task.spawn(Select) -- task.spawn zapobiega błędom przy ładowaniu
+        -- Reset poprzedniej zakładki
+        if UI.SelectedTab then
+            local prev = UI.SelectedTab
+            TweenService:Create(prev, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+            TweenService:Create(prev.Icon, TweenInfo.new(0.3), {ImageColor3 = Color3.fromRGB(150, 150, 150)}):Play()
+            TweenService:Create(prev.Label, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 150)}):Play()
+            TweenService:Create(prev.Indicator, TweenInfo.new(0.3), {Size = UDim2.new(0, 2, 0, 0), BackgroundTransparency = 1}):Play()
         end
         
-        return Tab
+        -- Ukryj wszystkie strony
+        for _, p in pairs(UI.Pages) do p.Visible = false end
+        
+        -- Aktywuj nową
+        Page.Visible = true
+        UI.SelectedTab = TabButton
+        
+        -- Animacja podświetlenia tła (jak w Xeno)
+        TweenService:Create(TabButton, TweenInfo.new(0.3), {BackgroundTransparency = 0.92}):Play() -- Bardzo lekkie podświetlenie
+        TweenService:Create(TabIcon, TweenInfo.new(0.3), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TweenService:Create(TabLabel, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        
+        -- Animacja linii wskaźnika
+        TweenService:Create(Indicator, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 2, 0, 18), -- Linia na 18px wysokości
+            BackgroundTransparency = 0
+        }):Play()
     end
+
+    TabButton.MouseButton1Click:Connect(Select)
+    
+    table.insert(UI.Tabs, TabButton)
+    table.insert(UI.Pages, Page)
+    
+    Tab.Button = TabButton
+    Tab.Page = Page
+    
+    if #UI.Tabs == 1 then
+        task.spawn(Select)
+    end
+    
+    return Tab
+end
     
     -- Domyślna zakładka "Dashboard"
     UI:CreateTab("Dashboard", "layout-dashboard")
