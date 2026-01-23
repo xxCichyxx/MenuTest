@@ -134,6 +134,17 @@ function Window:Create(config)
     Sidebar.Parent = MainFrame
     UI.Sidebar = Sidebar
 
+    local GlobalIndicator = Instance.new("Frame")
+    GlobalIndicator.Name = "GlobalIndicator"
+    GlobalIndicator.Size = UDim2.new(0, 2, 0, 45)
+    GlobalIndicator.Position = UDim2.new(0, 0, 0, 46) -- Startuje pod tytułem
+    GlobalIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    GlobalIndicator.BorderSizePixel = 0
+    GlobalIndicator.ZIndex = 20
+    GlobalIndicator.Visible = false
+    GlobalIndicator.Parent = Sidebar
+    UI.GlobalIndicator = GlobalIndicator
+
     local VerticalLine = Instance.new("Frame")
     VerticalLine.Size = UDim2.new(0, 1, 1, 0)
     VerticalLine.Position = UDim2.new(1, 0, 0, 0)
@@ -168,7 +179,7 @@ function Window:Create(config)
     TabList.BackgroundTransparency = 1
     TabList.BorderSizePixel = 0
     TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
-    TabList.ScrollBarThickness = 0 -- Ukrywamy dla lepszego wyglądu
+    TabList.ScrollBarThickness = 0
     TabList.Parent = Sidebar
     UI.TabList = TabList
 
@@ -176,17 +187,6 @@ function Window:Create(config)
     TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     TabListLayout.Padding = UDim.new(0, 0)
     TabListLayout.Parent = TabList
-
-    local GlobalIndicator = Instance.new("Frame")
-    GlobalIndicator.Name = "GlobalIndicator"
-    GlobalIndicator.Size = UDim2.new(0, 2, 0, 45) -- Szerokość 2, Wysokość taka jak Tab (45)
-    GlobalIndicator.Position = UDim2.new(0, 0, 0, 0)
-    GlobalIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    GlobalIndicator.BorderSizePixel = 0
-    GlobalIndicator.ZIndex = 10
-    GlobalIndicator.Visible = false -- Pojawi się po wybraniu pierwszego tabu
-    GlobalIndicator.Parent = TabList
-    UI.GlobalIndicator = GlobalIndicator
 
     -- 8. PagesContainer (Kontener na strony)
     local PagesContainer = Instance.new("Frame")
@@ -348,7 +348,6 @@ function Window:Create(config)
     function UI:CreateTab(name, icon)
         local Tab = {}
         
-        -- 1. Przycisk (Bez zaokrągleń, pełna szerokość)
         local TabButton = Instance.new("TextButton")
         TabButton.Name = name
         TabButton.Size = UDim2.new(1, 0, 0, 45)
@@ -360,9 +359,7 @@ function Window:Create(config)
         TabButton.LayoutOrder = #UI.Tabs + 1
         TabButton.Parent = TabList
 
-        -- 2. Ikona
         local TabIcon = Instance.new("ImageLabel")
-        TabIcon.Name = "Icon"
         TabIcon.Size = UDim2.new(0, 20, 0, 20)
         TabIcon.Position = UDim2.new(0, 15, 0.5, 0)
         TabIcon.AnchorPoint = Vector2.new(0, 0.5)
@@ -371,9 +368,7 @@ function Window:Create(config)
         TabIcon.Parent = TabButton
         Icons:Apply(TabIcon, icon)
         
-        -- 3. Tekst
         local TabLabel = Instance.new("TextLabel")
-        TabLabel.Name = "Label"
         TabLabel.Size = UDim2.new(1, -50, 1, 0)
         TabLabel.Position = UDim2.new(0, 45, 0, 0)
         TabLabel.BackgroundTransparency = 1
@@ -384,9 +379,7 @@ function Window:Create(config)
         TabLabel.TextXAlignment = Enum.TextXAlignment.Left
         TabLabel.Parent = TabButton
         
-        -- 4. Strona
         local Page = Instance.new("ScrollingFrame")
-        Page.Name = name .. "Page"
         Page.Size = UDim2.new(1, 0, 1, 0)
         Page.BackgroundTransparency = 1
         Page.BorderSizePixel = 0
@@ -396,58 +389,44 @@ function Window:Create(config)
         Page.Parent = PagesContainer
 
         local PageLayout = Instance.new("UIListLayout", Page)
-        PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
         PageLayout.Padding = UDim.new(0, 10)
         Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 20)
         Instance.new("UIPadding", Page).PaddingTop = UDim.new(0, 20)
         
-        -- 5. Funkcja wyboru z animacją jeżdżącej linii
         local function Select()
             if UI.SelectedTab == TabButton then return end
             
-            -- Pokaż wskaźnik jeśli to pierwszy wybór
             UI.GlobalIndicator.Visible = true
 
-            -- Reset koloru poprzedniej zakładki
             if UI.SelectedTab then
                 local prev = UI.SelectedTab
                 TweenService:Create(prev, TweenInfo.new(0.25), {BackgroundTransparency = 1}):Play()
-                TweenService:Create(prev.Icon, TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(160, 160, 160)}):Play()
-                TweenService:Create(prev.Label, TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(160, 160, 160)}):Play()
+                TweenService:Create(prev:FindFirstChild("Icon"), TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(160, 160, 160)}):Play()
+                TweenService:Create(prev:FindFirstChild("Label"), TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(160, 160, 160)}):Play()
             end
             
-            -- Ukryj strony
             for _, p in pairs(UI.Pages) do p.Visible = false end
-            
-            -- Aktywuj nową
             Page.Visible = true
             UI.SelectedTab = TabButton
             
-            -- Animacja tła i kolorów (Styl Xeno)
             TweenService:Create(TabButton, TweenInfo.new(0.25), {BackgroundTransparency = 0.93}):Play()
             TweenService:Create(TabIcon, TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
             TweenService:Create(TabLabel, TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
             
-            -- ANIMACJA PRZEJŚCIA LINII (Indicator leci do aktualnego przycisku)
-            local targetY = TabButton.Position.Y.Offset -- Pobieramy pozycję przycisku
+            -- FIX: Animacja linii (obliczamy pozycję względem Sidebaru)
+            -- Startujemy od 46px (wysokość tytułu) + (numer zakładki - 1) * 45px
+            local targetY = 46 + ((TabButton.LayoutOrder - 1) * 45)
             TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                Position = UDim2.new(0, 0, 0, TabButton.LayoutOrder * 45 - 45) -- 45 to wysokość przycisku
+                Position = UDim2.new(0, 0, 0, targetY)
             }):Play()
         end
 
         TabButton.MouseButton1Click:Connect(Select)
-        
         table.insert(UI.Tabs, TabButton)
         table.insert(UI.Pages, Page)
         
-        Tab.Button = TabButton
-        Tab.Page = Page
-        
-        if #UI.Tabs == 1 then
-            task.spawn(Select)
-        end
-        
-        return Tab
+        if #UI.Tabs == 1 then task.spawn(Select) end
+        return {Button = TabButton, Page = Page}
     end
     
     -- Domyślna zakładka "Dashboard"
