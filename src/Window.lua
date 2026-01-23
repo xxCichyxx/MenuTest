@@ -168,15 +168,25 @@ function Window:Create(config)
     TabList.BackgroundTransparency = 1
     TabList.BorderSizePixel = 0
     TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
-    TabList.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
-    TabList.ScrollBarThickness = 3
+    TabList.ScrollBarThickness = 0 -- Ukrywamy dla lepszego wyglądu
     TabList.Parent = Sidebar
     UI.TabList = TabList
 
     local TabListLayout = Instance.new("UIListLayout")
     TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    TabListLayout.Padding = UDim.new(0, 5)
+    TabListLayout.Padding = UDim.new(0, 0)
     TabListLayout.Parent = TabList
+
+    local GlobalIndicator = Instance.new("Frame")
+    GlobalIndicator.Name = "GlobalIndicator"
+    GlobalIndicator.Size = UDim2.new(0, 2, 0, 45) -- Szerokość 2, Wysokość taka jak Tab (45)
+    GlobalIndicator.Position = UDim2.new(0, 0, 0, 0)
+    GlobalIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    GlobalIndicator.BorderSizePixel = 0
+    GlobalIndicator.ZIndex = 10
+    GlobalIndicator.Visible = false -- Pojawi się po wybraniu pierwszego tabu
+    GlobalIndicator.Parent = TabList
+    UI.GlobalIndicator = GlobalIndicator
 
     -- 8. PagesContainer (Kontener na strony)
     local PagesContainer = Instance.new("Frame")
@@ -336,118 +346,109 @@ function Window:Create(config)
     end
     
     function UI:CreateTab(name, icon)
-    local Tab = {}
-    
-    -- 1. Przycisk zakładki (Prostokąt bez zaokrągleń, do krawędzi)
-    local TabButton = Instance.new("TextButton")
-    TabButton.Name = name
-    TabButton.Size = UDim2.new(1, 0, 0, 45) -- Wysokość 45px, szerokość 100%
-    TabButton.BackgroundTransparency = 1
-    TabButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    TabButton.Text = ""
-    TabButton.AutoButtonColor = false
-    TabButton.BorderSizePixel = 0
-    TabButton.LayoutOrder = #UI.Tabs + 1
-    TabButton.Parent = TabList
-
-    -- 2. BIAŁA KRESKA (Indicator) - Po lewej stronie
-    local Indicator = Instance.new("Frame")
-    Indicator.Name = "Indicator"
-    Indicator.Size = UDim2.new(0, 2, 1, 0) -- 1 = 100% wysokości przycisku
-    Indicator.Position = UDim2.new(0, 0, 0, 0) -- Od samej góry (Y=0)
-    Indicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Indicator.BorderSizePixel = 0
-    Indicator.BackgroundTransparency = 1 -- Ukryta domyślnie
-    Indicator.ZIndex = 3
-    Indicator.Parent = TabButton
-
-    -- 3. Ikona
-    local TabIcon = Instance.new("ImageLabel")
-    TabIcon.Name = "Icon"
-    TabIcon.Size = UDim2.new(0, 20, 0, 20)
-    TabIcon.Position = UDim2.new(0, 15, 0.5, 0)
-    TabIcon.AnchorPoint = Vector2.new(0, 0.5)
-    TabIcon.BackgroundTransparency = 1
-    TabIcon.ImageColor3 = Color3.fromRGB(160, 160, 160)
-    TabIcon.Parent = TabButton
-    Icons:Apply(TabIcon, icon)
-    
-    -- 4. Tekst (Label)
-    local TabLabel = Instance.new("TextLabel")
-    TabLabel.Name = "Label"
-    TabLabel.Size = UDim2.new(1, -50, 1, 0)
-    TabLabel.Position = UDim2.new(0, 45, 0, 0)
-    TabLabel.BackgroundTransparency = 1
-    TabLabel.Font = Enum.Font.GothamMedium
-    TabLabel.Text = name
-    TabLabel.TextSize = 14
-    TabLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
-    TabLabel.TextXAlignment = Enum.TextXAlignment.Left
-    TabLabel.Parent = TabButton
-    
-    -- 5. Strona (Content)
-    local Page = Instance.new("ScrollingFrame")
-    Page.Name = name .. "Page"
-    Page.Size = UDim2.new(1, 0, 1, 0)
-    Page.BackgroundTransparency = 1
-    Page.BorderSizePixel = 0
-    Page.Visible = false
-    Page.CanvasSize = UDim2.new(0,0,0,0)
-    Page.ScrollBarThickness = 0
-    Page.Parent = PagesContainer
-
-    local PageLayout = Instance.new("UIListLayout", Page)
-    PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    PageLayout.Padding = UDim.new(0, 10)
-    Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 20)
-    Instance.new("UIPadding", Page).PaddingTop = UDim.new(0, 20)
-    
-    -- 6. Logika wyboru i animacje
-    local function Select()
-        if UI.SelectedTab == TabButton then return end
+        local Tab = {}
         
-        -- Reset poprzedniej zakładki
-        if UI.SelectedTab then
-            local prev = UI.SelectedTab
-            TweenService:Create(prev, TweenInfo.new(0.25), {BackgroundTransparency = 1}):Play()
-            TweenService:Create(prev.Icon, TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(160, 160, 160)}):Play()
-            TweenService:Create(prev.Label, TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(160, 160, 160)}):Play()
-            TweenService:Create(prev.Indicator, TweenInfo.new(0.25), {Size = UDim2.new(0, 2, 0, 0), BackgroundTransparency = 1}):Play()
+        -- 1. Przycisk (Bez zaokrągleń, pełna szerokość)
+        local TabButton = Instance.new("TextButton")
+        TabButton.Name = name
+        TabButton.Size = UDim2.new(1, 0, 0, 45)
+        TabButton.BackgroundTransparency = 1
+        TabButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        TabButton.Text = ""
+        TabButton.AutoButtonColor = false
+        TabButton.BorderSizePixel = 0
+        TabButton.LayoutOrder = #UI.Tabs + 1
+        TabButton.Parent = TabList
+
+        -- 2. Ikona
+        local TabIcon = Instance.new("ImageLabel")
+        TabIcon.Name = "Icon"
+        TabIcon.Size = UDim2.new(0, 20, 0, 20)
+        TabIcon.Position = UDim2.new(0, 15, 0.5, 0)
+        TabIcon.AnchorPoint = Vector2.new(0, 0.5)
+        TabIcon.BackgroundTransparency = 1
+        TabIcon.ImageColor3 = Color3.fromRGB(160, 160, 160)
+        TabIcon.Parent = TabButton
+        Icons:Apply(TabIcon, icon)
+        
+        -- 3. Tekst
+        local TabLabel = Instance.new("TextLabel")
+        TabLabel.Name = "Label"
+        TabLabel.Size = UDim2.new(1, -50, 1, 0)
+        TabLabel.Position = UDim2.new(0, 45, 0, 0)
+        TabLabel.BackgroundTransparency = 1
+        TabLabel.Font = Enum.Font.GothamMedium
+        TabLabel.Text = name
+        TabLabel.TextSize = 14
+        TabLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+        TabLabel.TextXAlignment = Enum.TextXAlignment.Left
+        TabLabel.Parent = TabButton
+        
+        -- 4. Strona
+        local Page = Instance.new("ScrollingFrame")
+        Page.Name = name .. "Page"
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.BackgroundTransparency = 1
+        Page.BorderSizePixel = 0
+        Page.Visible = false
+        Page.CanvasSize = UDim2.new(0,0,0,0)
+        Page.ScrollBarThickness = 0
+        Page.Parent = PagesContainer
+
+        local PageLayout = Instance.new("UIListLayout", Page)
+        PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        PageLayout.Padding = UDim.new(0, 10)
+        Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 20)
+        Instance.new("UIPadding", Page).PaddingTop = UDim.new(0, 20)
+        
+        -- 5. Funkcja wyboru z animacją jeżdżącej linii
+        local function Select()
+            if UI.SelectedTab == TabButton then return end
+            
+            -- Pokaż wskaźnik jeśli to pierwszy wybór
+            UI.GlobalIndicator.Visible = true
+
+            -- Reset koloru poprzedniej zakładki
+            if UI.SelectedTab then
+                local prev = UI.SelectedTab
+                TweenService:Create(prev, TweenInfo.new(0.25), {BackgroundTransparency = 1}):Play()
+                TweenService:Create(prev.Icon, TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(160, 160, 160)}):Play()
+                TweenService:Create(prev.Label, TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(160, 160, 160)}):Play()
+            end
+            
+            -- Ukryj strony
+            for _, p in pairs(UI.Pages) do p.Visible = false end
+            
+            -- Aktywuj nową
+            Page.Visible = true
+            UI.SelectedTab = TabButton
+            
+            -- Animacja tła i kolorów (Styl Xeno)
+            TweenService:Create(TabButton, TweenInfo.new(0.25), {BackgroundTransparency = 0.93}):Play()
+            TweenService:Create(TabIcon, TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            TweenService:Create(TabLabel, TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            
+            -- ANIMACJA PRZEJŚCIA LINII (Indicator leci do aktualnego przycisku)
+            local targetY = TabButton.Position.Y.Offset -- Pobieramy pozycję przycisku
+            TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, 0, 0, TabButton.LayoutOrder * 45 - 45) -- 45 to wysokość przycisku
+            }):Play()
+        end
+
+        TabButton.MouseButton1Click:Connect(Select)
+        
+        table.insert(UI.Tabs, TabButton)
+        table.insert(UI.Pages, Page)
+        
+        Tab.Button = TabButton
+        Tab.Page = Page
+        
+        if #UI.Tabs == 1 then
+            task.spawn(Select)
         end
         
-        -- Ukryj wszystkie strony
-        for _, p in pairs(UI.Pages) do p.Visible = false end
-        
-        -- Aktywuj nową
-        Page.Visible = true
-        UI.SelectedTab = TabButton
-        
-        -- Animacja "Xeno"
-        TweenService:Create(TabButton, TweenInfo.new(0.25), {BackgroundTransparency = 0.93}):Play() -- Podświetlenie tła
-        TweenService:Create(TabIcon, TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-        TweenService:Create(TabLabel, TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-        
-        -- Animacja białej kreski (Indicator)
-        TweenService:Create(Indicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 2, 0, 22), -- Wysokość kreski
-            BackgroundTransparency = 0
-        }):Play()
+        return Tab
     end
-
-    TabButton.MouseButton1Click:Connect(Select)
-    
-    table.insert(UI.Tabs, TabButton)
-    table.insert(UI.Pages, Page)
-    
-    Tab.Button = TabButton
-    Tab.Page = Page
-    
-    if #UI.Tabs == 1 then
-        task.spawn(Select)
-    end
-    
-    return Tab
-end
     
     -- Domyślna zakładka "Dashboard"
     UI:CreateTab("Dashboard", "layout-dashboard")
