@@ -335,59 +335,54 @@ function Window:Create(config)
         Interactions:MakeDraggable(MobileToggle, MobileToggle)
     end
     
-    --- 12. SYSTEM ZAKŁADEK (TAB SYSTEM) ---
     function UI:CreateTab(name, icon)
     local Tab = {}
     
-    -- 1. Główny przycisk zakładki
+    -- 1. Przycisk zakładki (Prostokąt bez zaokrągleń, do krawędzi)
     local TabButton = Instance.new("TextButton")
     TabButton.Name = name
-    TabButton.Size = UDim2.new(1, -10, 0, 38) -- Lekki margines od brzegów sidebaru
-    TabButton.Position = UDim2.new(0, 5, 0, 0)
+    TabButton.Size = UDim2.new(1, 0, 0, 40) -- Szerokość 1 (do końca sidebaru)
     TabButton.BackgroundTransparency = 1
     TabButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     TabButton.Text = ""
     TabButton.AutoButtonColor = false
+    TabButton.BorderSizePixel = 0
     TabButton.LayoutOrder = #UI.Tabs + 1
     TabButton.Parent = TabList
 
-    local TabCorner = Instance.new("UICorner", TabButton)
-    TabCorner.CornerRadius = UDim.new(0, 6)
-
-    -- 2. LINIA WSKAŹNIKA (Indicator Line) - Ta biała kreska po lewej
+    -- 2. BIAŁA KRESKA (Indicator) - Po lewej stronie
     local Indicator = Instance.new("Frame")
     Indicator.Name = "Indicator"
     Indicator.Size = UDim2.new(0, 2, 0, 0) -- Startowa wysokość 0
-    Indicator.Position = UDim2.new(0, -5, 0.5, 0) -- Przesunięta do krawędzi sidebaru
+    Indicator.Position = UDim2.new(0, 0, 0.5, 0) -- Dokładnie na lewej krawędzi (X=0)
     Indicator.AnchorPoint = Vector2.new(0, 0.5)
     Indicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     Indicator.BorderSizePixel = 0
     Indicator.BackgroundTransparency = 1
+    Indicator.ZIndex = 3
     Indicator.Parent = TabButton
-    
-    Instance.new("UICorner", Indicator).CornerRadius = UDim.new(0, 2)
 
     -- 3. Ikona
     local TabIcon = Instance.new("ImageLabel")
     TabIcon.Name = "Icon"
-    TabIcon.Size = UDim2.new(0, 18, 0, 18)
-    TabIcon.Position = UDim2.new(0, 12, 0.5, 0)
+    TabIcon.Size = UDim2.new(0, 20, 0, 20)
+    TabIcon.Position = UDim2.new(0, 15, 0.5, 0)
     TabIcon.AnchorPoint = Vector2.new(0, 0.5)
     TabIcon.BackgroundTransparency = 1
-    TabIcon.ImageColor3 = Color3.fromRGB(150, 150, 150)
+    TabIcon.ImageColor3 = Color3.fromRGB(160, 160, 160)
     TabIcon.Parent = TabButton
     Icons:Apply(TabIcon, icon)
     
-    -- 4. Tekst
+    -- 4. Tekst (Label)
     local TabLabel = Instance.new("TextLabel")
     TabLabel.Name = "Label"
-    TabLabel.Size = UDim2.new(1, -45, 1, 0)
-    TabLabel.Position = UDim2.new(0, 40, 0, 0)
+    TabLabel.Size = UDim2.new(1, -50, 1, 0)
+    TabLabel.Position = UDim2.new(0, 45, 0, 0)
     TabLabel.BackgroundTransparency = 1
     TabLabel.Font = Enum.Font.GothamMedium
     TabLabel.Text = name
     TabLabel.TextSize = 14
-    TabLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    TabLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
     TabLabel.TextXAlignment = Enum.TextXAlignment.Left
     TabLabel.Parent = TabButton
     
@@ -399,28 +394,26 @@ function Window:Create(config)
     Page.BorderSizePixel = 0
     Page.Visible = false
     Page.CanvasSize = UDim2.new(0,0,0,0)
-    Page.ScrollBarThickness = 0 -- Ukrywamy scrollbar dla czystego wyglądu Xeno
+    Page.ScrollBarThickness = 0
     Page.Parent = PagesContainer
 
     local PageLayout = Instance.new("UIListLayout", Page)
     PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    PageLayout.Padding = UDim.new(0, 8)
-
-    Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 15)
-    Instance.new("UIPadding", Page).PaddingRight = UDim.new(0, 15)
-    Instance.new("UIPadding", Page).PaddingTop = UDim.new(0, 15)
+    PageLayout.Padding = UDim.new(0, 10)
+    Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 20)
+    Instance.new("UIPadding", Page).PaddingTop = UDim.new(0, 20)
     
-    -- 6. Logika wyboru (Animacje jak na zdjęciu)
+    -- 6. Logika wyboru i animacje
     local function Select()
         if UI.SelectedTab == TabButton then return end
         
         -- Reset poprzedniej zakładki
         if UI.SelectedTab then
             local prev = UI.SelectedTab
-            TweenService:Create(prev, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
-            TweenService:Create(prev.Icon, TweenInfo.new(0.3), {ImageColor3 = Color3.fromRGB(150, 150, 150)}):Play()
-            TweenService:Create(prev.Label, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(150, 150, 150)}):Play()
-            TweenService:Create(prev.Indicator, TweenInfo.new(0.3), {Size = UDim2.new(0, 2, 0, 0), BackgroundTransparency = 1}):Play()
+            TweenService:Create(prev, TweenInfo.new(0.25), {BackgroundTransparency = 1}):Play()
+            TweenService:Create(prev.Icon, TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(160, 160, 160)}):Play()
+            TweenService:Create(prev.Label, TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(160, 160, 160)}):Play()
+            TweenService:Create(prev.Indicator, TweenInfo.new(0.25), {Size = UDim2.new(0, 2, 0, 0), BackgroundTransparency = 1}):Play()
         end
         
         -- Ukryj wszystkie strony
@@ -430,14 +423,14 @@ function Window:Create(config)
         Page.Visible = true
         UI.SelectedTab = TabButton
         
-        -- Animacja podświetlenia tła (jak w Xeno)
-        TweenService:Create(TabButton, TweenInfo.new(0.3), {BackgroundTransparency = 0.92}):Play() -- Bardzo lekkie podświetlenie
-        TweenService:Create(TabIcon, TweenInfo.new(0.3), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-        TweenService:Create(TabLabel, TweenInfo.new(0.3), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        -- Animacja "Xeno"
+        TweenService:Create(TabButton, TweenInfo.new(0.25), {BackgroundTransparency = 0.93}):Play() -- Podświetlenie tła
+        TweenService:Create(TabIcon, TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        TweenService:Create(TabLabel, TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
         
-        -- Animacja linii wskaźnika
-        TweenService:Create(Indicator, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 2, 0, 18), -- Linia na 18px wysokości
+        -- Animacja białej kreski (Indicator)
+        TweenService:Create(Indicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 2, 0, 22), -- Wysokość kreski
             BackgroundTransparency = 0
         }):Play()
     end
