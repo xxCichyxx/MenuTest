@@ -360,6 +360,7 @@ function Window:Create(config)
         TabButton.Parent = TabList
 
         local TabIcon = Instance.new("ImageLabel")
+        TabIcon.Name = "Icon"
         TabIcon.Size = UDim2.new(0, 20, 0, 20)
         TabIcon.Position = UDim2.new(0, 15, 0.5, 0)
         TabIcon.AnchorPoint = Vector2.new(0, 0.5)
@@ -369,6 +370,7 @@ function Window:Create(config)
         Icons:Apply(TabIcon, icon)
         
         local TabLabel = Instance.new("TextLabel")
+        TabLabel.Name = "Label"
         TabLabel.Size = UDim2.new(1, -50, 1, 0)
         TabLabel.Position = UDim2.new(0, 45, 0, 0)
         TabLabel.BackgroundTransparency = 1
