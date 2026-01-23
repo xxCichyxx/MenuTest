@@ -341,7 +341,7 @@ function Window:Create(config)
     -- 1. Przycisk zakładki (Prostokąt bez zaokrągleń, do krawędzi)
     local TabButton = Instance.new("TextButton")
     TabButton.Name = name
-    TabButton.Size = UDim2.new(1, 0, 0, 40) -- Szerokość 1 (do końca sidebaru)
+    TabButton.Size = UDim2.new(1, 0, 0, 45) -- Wysokość 45px, szerokość 100%
     TabButton.BackgroundTransparency = 1
     TabButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     TabButton.Text = ""
@@ -353,12 +353,11 @@ function Window:Create(config)
     -- 2. BIAŁA KRESKA (Indicator) - Po lewej stronie
     local Indicator = Instance.new("Frame")
     Indicator.Name = "Indicator"
-    Indicator.Size = UDim2.new(0, 2, 0, 0) -- Startowa wysokość 0
-    Indicator.Position = UDim2.new(0, 0, 0.5, 0) -- Dokładnie na lewej krawędzi (X=0)
-    Indicator.AnchorPoint = Vector2.new(0, 0.5)
+    Indicator.Size = UDim2.new(0, 2, 1, 0) -- 1 = 100% wysokości przycisku
+    Indicator.Position = UDim2.new(0, 0, 0, 0) -- Od samej góry (Y=0)
     Indicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     Indicator.BorderSizePixel = 0
-    Indicator.BackgroundTransparency = 1
+    Indicator.BackgroundTransparency = 1 -- Ukryta domyślnie
     Indicator.ZIndex = 3
     Indicator.Parent = TabButton
 
