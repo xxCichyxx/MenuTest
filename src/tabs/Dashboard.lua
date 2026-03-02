@@ -1,5 +1,8 @@
 local Dashboard = {}
 
+-- Serwisy
+local HttpService = game:GetService("HttpService")
+
 -- Ładowanie ikon
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 local Icons = loadstring(game:HttpGet(baseUrl .. "Icons.lua"))()
@@ -11,7 +14,7 @@ function Dashboard:Render(UI, order)
     -- 1. Sekcja "Quick Links" (Górna)
     local QuickLinksContainer = Instance.new("Frame")
     QuickLinksContainer.Name = "QuickLinks"
-    QuickLinksContainer.Size = UDim2.new(1, -40, 0, 140) -- Wysokość kart
+    QuickLinksContainer.Size = UDim2.new(1, -40, 0, 140)
     QuickLinksContainer.BackgroundTransparency = 1
     QuickLinksContainer.Parent = Page
 
@@ -21,12 +24,11 @@ function Dashboard:Render(UI, order)
     QuickLinksLayout.Padding = UDim.new(0, 15)
     QuickLinksLayout.Parent = QuickLinksContainer
 
-    -- Funkcja pomocnicza do tworzenia kart
-    local function createCard(title, subtitle, iconName, btnText)
+    local versionLabel -- Zmienna do przechowywania referencji do etykiety wersji
+
+    local function createCard(title, subtitle, iconName, btnText, link)
         local Card = Instance.new("Frame")
         Card.Name = "Card_" .. title
-        -- Obliczamy szerokość: (100% - (2 * padding)) / 3 karty
-        -- Używamy Scale, aby było responsywne
         Card.Size = UDim2.new(0.333, -10, 1, 0)
         Card.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
         Card.Parent = QuickLinksContainer
@@ -38,7 +40,6 @@ function Dashboard:Render(UI, order)
         Stroke.Thickness = 1
         Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-        -- Ikona na górze
         local Icon = Instance.new("ImageLabel")
         Icon.Size = UDim2.new(0, 32, 0, 32)
         Icon.Position = UDim2.new(0.5, 0, 0, 15)
@@ -48,7 +49,6 @@ function Dashboard:Render(UI, order)
         Icon.Parent = Card
         Icons:Apply(Icon, iconName)
 
-        -- Tytuł
         local TitleLabel = Instance.new("TextLabel")
         TitleLabel.Text = title
         TitleLabel.Font = Enum.Font.GothamBold
@@ -59,7 +59,6 @@ function Dashboard:Render(UI, order)
         TitleLabel.BackgroundTransparency = 1
         TitleLabel.Parent = Card
 
-        -- Podtytuł
         local SubLabel = Instance.new("TextLabel")
         SubLabel.Text = subtitle
         SubLabel.Font = Enum.Font.Gotham
@@ -70,7 +69,10 @@ function Dashboard:Render(UI, order)
         SubLabel.BackgroundTransparency = 1
         SubLabel.Parent = Card
 
-        -- Przycisk
+        if title == "Version" then
+            versionLabel = SubLabel -- Zapisujemy referencję
+        end
+
         local Btn = Instance.new("TextButton")
         Btn.Text = btnText or "Open"
         Btn.Font = Enum.Font.GothamMedium
@@ -83,7 +85,6 @@ function Dashboard:Render(UI, order)
         Btn.Parent = Card
         Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
 
-        -- Mała ikona linku w przycisku
         local LinkIcon = Instance.new("ImageLabel")
         LinkIcon.Size = UDim2.new(0, 12, 0, 12)
         LinkIcon.Position = UDim2.new(1, -20, 0.5, 0)
@@ -93,22 +94,27 @@ function Dashboard:Render(UI, order)
         LinkIcon.Parent = Btn
         Icons:Apply(LinkIcon, "external-link")
 
+        if link and typeof(setclipboard) == "function" then
+            Btn.MouseButton1Click:Connect(function()
+                setclipboard(link)
+            end)
+        end
+
         return Btn
     end
 
-    createCard("Discord", "Join our community", "users", "Join")
-    createCard("Script", "Version 2.5.1", "file-text", "Copy")
-    createCard("Support", "Get help now", "life-buoy", "Contact")
-
+    createCard("Discord", "Join community", "users", "Join", "https://dsc.gg/xeno-scripts-pl")
+    createCard("Version", "Ładowanie...", "package", "Copy ID")
+    createCard("GitHub", "View source", "github", "Open", "https://github.com/xxCichyxx/MenuTest")
 
     -- 2. Sekcja "Latest Updates" (Dolna)
     local UpdatesContainer = Instance.new("Frame")
     UpdatesContainer.Name = "UpdatesContainer"
-    UpdatesContainer.Size = UDim2.new(1, -40, 1, -160) -- Reszta miejsca
+    UpdatesContainer.Size = UDim2.new(1, -40, 1, -160)
+    UpdatesContainer.Position = UDim2.new(0, 0, 0, 150)
     UpdatesContainer.BackgroundTransparency = 1
     UpdatesContainer.Parent = Page
 
-    -- Nagłówek sekcji
     local Header = Instance.new("Frame")
     Header.Size = UDim2.new(1, 0, 0, 30)
     Header.BackgroundTransparency = 1
@@ -134,8 +140,8 @@ function Dashboard:Render(UI, order)
     HeaderText.BackgroundTransparency = 1
     HeaderText.Parent = Header
 
-    -- Lista zmian
     local ChangelogList = Instance.new("ScrollingFrame")
+    ChangelogList.Name = "ChangelogList"
     ChangelogList.Size = UDim2.new(1, 0, 1, -40)
     ChangelogList.Position = UDim2.new(0, 0, 0, 40)
     ChangelogList.BackgroundTransparency = 1
@@ -145,46 +151,108 @@ function Dashboard:Render(UI, order)
 
     local ListLayout = Instance.new("UIListLayout")
     ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    ListLayout.Padding = UDim.new(0, 5)
+    ListLayout.Padding = UDim.new(0, 0)
     ListLayout.Parent = ChangelogList
 
-    local function addLog(text)
+    local function addLog(message, commitId)
         local LogItem = Instance.new("Frame")
-        LogItem.Size = UDim2.new(1, 0, 0, 30)
+        LogItem.Size = UDim2.new(1, 0, 0, 35)
         LogItem.BackgroundTransparency = 1
         LogItem.Parent = ChangelogList
 
-        local Bullet = Instance.new("Frame")
-        Bullet.Size = UDim2.new(0, 6, 0, 6)
+        local Bullet = Instance.new("ImageLabel")
+        Bullet.Size = UDim2.new(0, 14, 0, 14)
         Bullet.Position = UDim2.new(0, 5, 0.5, 0)
         Bullet.AnchorPoint = Vector2.new(0, 0.5)
-        Bullet.BackgroundColor3 = Color3.fromRGB(100, 255, 100) -- Zielona kropka
+        Bullet.BackgroundTransparency = 1
+        Bullet.ImageColor3 = Color3.fromRGB(100, 255, 100)
         Bullet.Parent = LogItem
-        Instance.new("UICorner", Bullet).CornerRadius = UDim.new(1, 0)
+        Icons:Apply(Bullet, "arrow-right")
 
         local LogText = Instance.new("TextLabel")
-        LogText.Text = text
+        LogText.Text = message
         LogText.Font = Enum.Font.Gotham
         LogText.TextSize = 14
         LogText.TextColor3 = Color3.fromRGB(200, 200, 200)
-        LogText.Size = UDim2.new(1, -20, 1, 0)
-        LogText.Position = UDim2.new(0, 20, 0, 0)
+        LogText.Size = UDim2.new(1, -100, 1, 0)
+        LogText.Position = UDim2.new(0, 25, 0, 0)
         LogText.TextXAlignment = Enum.TextXAlignment.Left
         LogText.BackgroundTransparency = 1
+        LogText.TextTruncate = Enum.TextTruncate.AtEnd
         LogText.Parent = LogItem
+
+        local CommitLabel = Instance.new("TextLabel")
+        CommitLabel.Text = commitId
+        CommitLabel.Font = Enum.Font.Gotham
+        CommitLabel.TextSize = 12
+        CommitLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+        CommitLabel.Size = UDim2.new(0, 70, 1, 0)
+        CommitLabel.Position = UDim2.new(1, -70, 0, 0)
+        CommitLabel.TextXAlignment = Enum.TextXAlignment.Center
+        CommitLabel.BackgroundTransparency = 1
+        CommitLabel.Parent = LogItem
 
         local Separator = Instance.new("Frame")
         Separator.Size = UDim2.new(1, 0, 0, 1)
-        Separator.Position = UDim2.new(0, 0, 1, 0)
-        Separator.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        Separator.Position = UDim2.new(0, 0, 1, -1)
+        Separator.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
         Separator.BorderSizePixel = 0
         Separator.Parent = LogItem
     end
 
-    addLog("Added new aimbot features")
-    addLog("Fixed ESP flickering issue")
-    addLog("Updated UI design to modern style")
-    addLog("Improved performance on low-end PCs")
+    -- 3. Asynchroniczne pobieranie danych
+    task.spawn(function()
+        -- Sprawdzenie HTTP Service
+        local httpEnabled = pcall(function() HttpService:GetAsync("https://google.com") end)
+        -- Uwaga: W Roblox Studio HttpEnabled jest właściwością, ale w grze nie mamy do niej dostępu.
+        -- Najlepszym testem jest próba wykonania requestu.
+        -- Jednak dla bezpieczeństwa i prostoty w skryptach exploitowych często zakłada się, że jest włączone,
+        -- lub sprawdza się pcall na requestach.
+
+        -- Pobieranie wersji
+        local success, version = pcall(function()
+            return game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/version.txt")
+        end)
+
+        if versionLabel then
+            if success and version then
+                versionLabel.Text = "v" .. version:gsub("^%s*(.-)%s*$", "%1") -- Trim whitespace
+            else
+                versionLabel.Text = "Unknown"
+            end
+        end
+
+        -- Pobieranie changelogu
+        local success, response = pcall(function()
+            return game:HttpGet("https://api.github.com/repos/xxCichyxx/MenuTest/commits")
+        end)
+
+        if success and response then
+            local successJson, commits = pcall(function()
+                return HttpService:JSONDecode(response)
+            end)
+
+            if successJson and type(commits) == "table" then
+                -- Czyścimy listę (np. szkielety ładowania, jeśli były)
+                for _, child in pairs(ChangelogList:GetChildren()) do
+                    if child:IsA("Frame") then child:Destroy() end
+                end
+
+                for i = 1, math.min(5, #commits) do
+                    local commitData = commits[i]
+                    if commitData and commitData.commit then
+                        local message = commitData.commit.message
+                        local sha = commitData.sha:sub(1, 7)
+                        addLog(message, sha)
+                    end
+                end
+            else
+                addLog("Failed to parse GitHub data", "Error")
+            end
+        else
+            addLog("Could not fetch updates", "Network Error")
+        end
+    end)
 end
 
 return Dashboard
