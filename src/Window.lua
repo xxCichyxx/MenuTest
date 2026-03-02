@@ -20,11 +20,19 @@ function Window:Create(config)
 
     -- // THEME MANAGER
     local ThemeManager = { Elements = {}, CurrentTheme = config.Theme }
-    local function getColor(colorTable) return Color3.fromRGB(unpack(colorTable)) end
+
+    local function getColor(colorTable)
+        if not colorTable then return Color3.fromRGB(255, 0, 255) end -- Magenta error color
+        return Color3.fromRGB(unpack(colorTable))
+    end
+
     function ThemeManager:Register(element, property, colorName)
         table.insert(self.Elements, { Element = element, Property = property, ColorName = colorName })
-        if self.CurrentTheme[colorName] then element[property] = getColor(self.CurrentTheme[colorName]) end
+        if self.CurrentTheme[colorName] then
+            element[property] = getColor(self.CurrentTheme[colorName])
+        end
     end
+
     function ThemeManager:Apply(newTheme)
         self.CurrentTheme = newTheme
         for _, item in pairs(self.Elements) do
@@ -204,7 +212,24 @@ function Window:Create(config)
     UI.MaxBtn = createIconBtn("maximize-2", UDim2.new(0, 35, 0, 0))
     UI.CloseBtn = createIconBtn("x", UDim2.new(0, 70, 0, 0))
 
-    -- ... (logika MaxBtn)
+    local maximized = false
+    local lastSize, lastPos
+
+    UI.MaxBtn.MouseButton1Click:Connect(function()
+        if not maximized then
+            lastSize = MainFrame.Size
+            lastPos = MainFrame.Position
+            MainFrame:TweenSizeAndPosition(UDim2.new(1, 0, 1, 0), UDim2.new(0.5, 0, 0.5, 0), "Out", "Quart", 0.3, true)
+            maximized = true
+            Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "square")
+            UI.ResizeHandle.Visible = false
+        else
+            MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out", "Quart", 0.3, true)
+            maximized = false
+            Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "maximize-2")
+            UI.ResizeHandle.Visible = true
+        end
+    end)
 
     local ResizeHandle = Instance.new("TextButton")
     ResizeHandle.Name = "ResizeHandle"
@@ -229,7 +254,74 @@ function Window:Create(config)
     Interactions:MakeDraggable(TopBar, MainFrame)
     Interactions:MakeResizable(ResizeHandle, MainFrame, 700, 400)
 
-    -- ... (logika Shadow)
+    Shadow.AnchorPoint = MainFrame.AnchorPoint
+    local SHADOW_OFFSET = 35
+
+    RunService.RenderStepped:Connect(function()
+        if MainFrame.Visible then
+            Shadow.Position = UDim2.new(0, MainFrame.AbsolutePosition.X + (MainFrame.AbsoluteSize.X / 2), 0, MainFrame.AbsolutePosition.Y + (MainFrame.AbsoluteSize.Y / 2))
+            Shadow.Size = UDim2.new(0, MainFrame.AbsoluteSize.X + (SHADOW_OFFSET * 2), 0, MainFrame.AbsoluteSize.Y + (SHADOW_OFFSET * 2))
+        end
+        Shadow.Visible = MainFrame.Visible
+    end)
+
+    if isTouch then
+        local MobileToggle = Instance.new("TextButton")
+        MobileToggle.Name = "MobileToggle"
+        MobileToggle.Size = UDim2.new(0, 55, 0, 65)
+        MobileToggle.Position = UDim2.new(0, 20, 0.5, -32)
+        MobileToggle.BorderSizePixel = 0
+        MobileToggle.Text = ""
+        MobileToggle.ZIndex = 100
+        MobileToggle.Parent = ScreenGui
+        UI.MobileToggle = MobileToggle
+        ThemeManager:Register(MobileToggle, "BackgroundColor3", "Main")
+
+        Instance.new("UICorner", MobileToggle).CornerRadius = UDim.new(0, 10)
+        local Stroke = Instance.new("UIStroke", MobileToggle)
+        Stroke.Thickness = 1.5
+        ThemeManager:Register(Stroke, "Color", "Accent")
+
+        local MobileIcon = Instance.new("ImageLabel")
+        MobileIcon.Name = "Icon"
+        MobileIcon.Size = UDim2.new(0, 22, 0, 22)
+        MobileIcon.Position = UDim2.new(0.5, 0, 0.4, 0)
+        MobileIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+        MobileIcon.BackgroundTransparency = 1
+        MobileIcon.Parent = MobileToggle
+        ThemeManager:Register(MobileIcon, "ImageColor3", "Text")
+        Icons:Apply(MobileIcon, "menu")
+
+        local ToggleText = Instance.new("TextLabel")
+        ToggleText.Name = "MobileToggleText"
+        ToggleText.Size = UDim2.new(1, 0, 0, 20)
+        ToggleText.Position = UDim2.new(0.5, 0, 0.75, 0)
+        ToggleText.AnchorPoint = Vector2.new(0.5, 0.5)
+        ToggleText.BackgroundTransparency = 1
+        ToggleText.Text = "CLOSE"
+        ToggleText.Font = Enum.Font.GothamBold
+        ToggleText.TextSize = 9
+        ToggleText.Parent = MobileToggle
+        UI.MobileToggleText = ToggleText
+
+        MainFrame.Visible = true
+
+        MobileToggle.MouseButton1Click:Connect(function()
+            local isVisible = MainFrame.Visible
+            MainFrame.Visible = not isVisible
+            Shadow.Visible = not isVisible
+
+            if isVisible then
+                ToggleText.Text = "OPEN"
+                ToggleText.TextColor3 = getColor(ThemeManager.CurrentTheme.Success)
+            else
+                ToggleText.Text = "CLOSE"
+                ToggleText.TextColor3 = Color3.fromRGB(255, 100, 100)
+            end
+        end)
+
+        Interactions:MakeDraggable(MobileToggle, MobileToggle)
+    end
 
     local function ShowExitModal()
         local Overlay = Instance.new("Frame")
@@ -252,6 +344,7 @@ function Window:Create(config)
         Instance.new("UICorner", Modal).CornerRadius = UDim.new(0, 8)
         local Stroke = Instance.new("UIStroke", Modal)
         Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        Stroke.Thickness = 1.5
         ThemeManager:Register(Stroke, "Color", "Accent")
 
         local Question = Instance.new("TextLabel")
@@ -263,15 +356,25 @@ function Window:Create(config)
         Question.Parent = Modal
         ThemeManager:Register(Question, "TextColor3", "Text")
 
-        local YesBtn = Instance.new("TextButton")
-        -- ...
-        ThemeManager:Register(YesBtn, "BackgroundColor3", "Close")
+        local function createBtn(text, colorKey, pos)
+            local btn = Instance.new("TextButton")
+            btn.Text = text
+            btn.Font = Enum.Font.GothamMedium
+            btn.TextSize = 14
+            btn.Size = UDim2.new(0, 100, 0, 35)
+            btn.Position = pos
+            btn.Parent = Modal
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+            ThemeManager:Register(btn, "TextColor3", "Text")
+            ThemeManager:Register(btn, "BackgroundColor3", colorKey)
+            return btn
+        end
 
-        local NoBtn = Instance.new("TextButton")
-        -- ...
-        ThemeManager:Register(NoBtn, "BackgroundColor3", "Accent")
+        local YesBtn = createBtn("Yes", "Close", UDim2.new(0.5, -110, 0.7, 0))
+        local NoBtn = createBtn("No", "Accent", UDim2.new(0.5, 10, 0.7, 0))
 
-        -- ...
+        YesBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+        NoBtn.MouseButton1Click:Connect(function() Overlay:Destroy() end)
     end
     UI.ShowExitModal = ShowExitModal
 
@@ -294,6 +397,7 @@ function Window:Create(config)
         TabIcon.BackgroundTransparency = 1
         TabIcon.Parent = TabButton
         Icons:Apply(TabIcon, icon)
+        ThemeManager:Register(TabIcon, "ImageColor3", "Text_Secondary")
 
         local TabLabel = Instance.new("TextLabel")
         TabLabel.Name = "Label"
@@ -305,22 +409,61 @@ function Window:Create(config)
         TabLabel.TextSize = 14
         TabLabel.TextXAlignment = Enum.TextXAlignment.Left
         TabLabel.Parent = TabButton
-        
+        ThemeManager:Register(TabLabel, "TextColor3", "Text_Secondary")
+
         local Page = Instance.new("ScrollingFrame")
-        -- ...
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.BackgroundTransparency = 1
+        Page.BorderSizePixel = 0
+        Page.Visible = false -- Domyślnie ukryta
+        Page.CanvasSize = UDim2.new(0,0,0,0)
+        Page.ScrollBarThickness = 0
+        Page.Parent = PagesContainer
+
+        local PageLayout = Instance.new("UIListLayout", Page)
+        PageLayout.Padding = UDim.new(0, 10)
+        Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 20)
+        Instance.new("UIPadding", Page).PaddingTop = UDim.new(0, 20)
         
         local function Select()
             if UI.SelectedTab == TabButton then return end
             
+            UI.GlobalIndicator.Visible = true
+
             if UI.SelectedTab then
-                TweenService:Create(UI.SelectedTab:FindFirstChild("Icon"), TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play()
-                TweenService:Create(UI.SelectedTab:FindFirstChild("Label"), TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play()
+                -- Reset poprzedniej zakładki
+                local prevIcon = UI.SelectedTab:FindFirstChild("Icon")
+                local prevLabel = UI.SelectedTab:FindFirstChild("Label")
+                if prevIcon then TweenService:Create(prevIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
+                if prevLabel then TweenService:Create(prevLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
             end
 
+            -- Ukryj wszystkie strony
+            for _, p in pairs(UI.Pages) do p.Visible = false end
+            -- Pokaż aktualną
+            Page.Visible = true
+            UI.SelectedTab = TabButton
+
+            -- Aktywacja nowej zakładki
             TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
             TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
             
-            -- ... reszta logiki Select
+            -- Animacja linii
+            local sortedTabs = {}
+            for _, t in pairs(TabList:GetChildren()) do
+                if t:IsA("TextButton") then table.insert(sortedTabs, t) end
+            end
+            table.sort(sortedTabs, function(a, b) return a.LayoutOrder < b.LayoutOrder end)
+
+            local index = 1
+            for i, t in ipairs(sortedTabs) do
+                if t == TabButton then index = i break end
+            end
+
+            local targetY = 46 + ((index - 1) * 45)
+            TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Position = UDim2.new(0, 0, 0, targetY)
+            }):Play()
         end
 
         TabButton.MouseButton1Click:Connect(Select)
