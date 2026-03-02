@@ -77,8 +77,14 @@ function XHUB:CreateWindow(options)
     end)
 
     UI.MinBtn.MouseButton1Click:Connect(toggleMenu)
-    UI.CloseBtn.MouseButton1Click:Connect(function() 
-        UI.ScreenGui:Destroy() 
+
+    -- ZMIANA: Używamy ShowExitModal zamiast bezpośredniego Destroy
+    UI.CloseBtn.MouseButton1Click:Connect(function()
+        if UI.ShowExitModal then
+            UI.ShowExitModal()
+        else
+            UI.ScreenGui:Destroy()
+        end
     end)
     
     if UI.MobileToggle then

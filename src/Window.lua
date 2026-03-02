@@ -347,7 +347,73 @@ function Window:Create(config)
 
         Interactions:MakeDraggable(MobileToggle, MobileToggle)
     end
-    
+
+    -- 12. Exit Confirmation Modal
+    local function ShowExitModal()
+        local Overlay = Instance.new("Frame")
+        Overlay.Name = "ExitOverlay"
+        Overlay.Size = UDim2.new(1, 0, 1, 0)
+        Overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        Overlay.BackgroundTransparency = 0.5
+        Overlay.ZIndex = 100
+        Overlay.Parent = MainFrame
+
+        local Modal = Instance.new("Frame")
+        Modal.Name = "ExitModal"
+        Modal.Size = UDim2.new(0, 300, 0, 150)
+        Modal.Position = UDim2.new(0.5, 0, 0.5, 0)
+        Modal.AnchorPoint = Vector2.new(0.5, 0.5)
+        Modal.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        Modal.BorderSizePixel = 0
+        Modal.Parent = Overlay
+
+        Instance.new("UICorner", Modal).CornerRadius = UDim.new(0, 8)
+        local Stroke = Instance.new("UIStroke", Modal)
+        Stroke.Color = Color3.fromRGB(60, 60, 60)
+        Stroke.Thickness = 1.5
+        Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+        local Question = Instance.new("TextLabel")
+        Question.Text = "Are you sure you want to exit?"
+        Question.Font = Enum.Font.GothamBold
+        Question.TextSize = 16
+        Question.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Question.Size = UDim2.new(1, 0, 0, 80)
+        Question.BackgroundTransparency = 1
+        Question.Parent = Modal
+
+        local function createBtn(text, color, pos)
+            local btn = Instance.new("TextButton")
+            btn.Text = text
+            btn.Font = Enum.Font.GothamMedium
+            btn.TextSize = 14
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.BackgroundColor3 = color
+            btn.Size = UDim2.new(0, 100, 0, 35)
+            btn.Position = pos
+            btn.Parent = Modal
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+            return btn
+        end
+
+        local YesBtn = createBtn("Yes", Color3.fromRGB(200, 50, 50), UDim2.new(0.5, -110, 0.7, 0))
+        local NoBtn = createBtn("No", Color3.fromRGB(60, 60, 60), UDim2.new(0.5, 10, 0.7, 0))
+
+        YesBtn.MouseButton1Click:Connect(function()
+            ScreenGui:Destroy()
+        end)
+
+        NoBtn.MouseButton1Click:Connect(function()
+            Overlay:Destroy()
+        end)
+    end
+
+    -- Nadpisujemy domyślne zachowanie CloseBtn w Main.lua, ale tutaj też warto to obsłużyć
+    -- W Main.lua jest: UI.CloseBtn.MouseButton1Click:Connect(function() UI.ScreenGui:Destroy() end)
+    -- Musimy to zmienić w Main.lua, aby korzystało z nowej funkcji, lub podpiąć to tutaj i usunąć z Main.lua.
+    -- Najlepiej: Zwróćmy funkcję ShowExitModal w tabeli UI, aby Main.lua mógł jej użyć.
+    UI.ShowExitModal = ShowExitModal
+
     function UI:CreateTab(name, icon, order)
         local Tab = {}
         
