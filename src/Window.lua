@@ -276,11 +276,14 @@ function Window:Create(config)
     Interactions:MakeDraggable(TopBar, MainFrame)
     Interactions:MakeResizable(ResizeHandle, MainFrame, 600, 350)
 
+    -- // 10. Shadow Update Fix
+    Shadow.AnchorPoint = MainFrame.AnchorPoint
+    local SHADOW_OFFSET = 35
+
     RunService.RenderStepped:Connect(function()
         if MainFrame.Visible then
-            local offset = 35
-            Shadow.Position = UDim2.new(MainFrame.Position.X.Scale, MainFrame.Position.X.Offset - offset, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset - offset)
-            Shadow.Size = UDim2.new(0, MainFrame.AbsoluteSize.X + (offset * 2), 0, MainFrame.AbsoluteSize.Y + (offset * 2))
+            Shadow.Position = UDim2.new(0, MainFrame.AbsolutePosition.X + (MainFrame.AbsoluteSize.X / 2), 0, MainFrame.AbsolutePosition.Y + (MainFrame.AbsoluteSize.Y / 2))
+            Shadow.Size = UDim2.new(0, MainFrame.AbsoluteSize.X + (SHADOW_OFFSET * 2), 0, MainFrame.AbsoluteSize.Y + (SHADOW_OFFSET * 2))
         end
         Shadow.Visible = MainFrame.Visible
     end)
