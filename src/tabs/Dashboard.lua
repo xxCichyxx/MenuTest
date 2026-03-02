@@ -11,10 +11,17 @@ function Dashboard:Render(UI, order)
     local TabElements = UI:CreateTab("Dashboard", "layout-dashboard", order or 1)
     local Page = TabElements.Page
 
+    -- 0. Spacer / Padding dla całej strony
+    local PagePadding = Instance.new("UIPadding")
+    PagePadding.PaddingTop = UDim.new(0, 20)
+    PagePadding.PaddingLeft = UDim.new(0, 0) -- PaddingLeft jest już w Window.lua (20px)
+    PagePadding.PaddingRight = UDim.new(0, 20) -- Dodajemy margines z prawej
+    PagePadding.Parent = Page
+
     -- 1. Sekcja "Quick Links" (Górna)
     local QuickLinksContainer = Instance.new("Frame")
     QuickLinksContainer.Name = "QuickLinks"
-    QuickLinksContainer.Size = UDim2.new(1, -40, 0, 140)
+    QuickLinksContainer.Size = UDim2.new(1, 0, 0, 140) -- Pełna szerokość (minus paddingi)
     QuickLinksContainer.BackgroundTransparency = 1
     QuickLinksContainer.Parent = Page
 
@@ -110,10 +117,25 @@ function Dashboard:Render(UI, order)
     -- 2. Sekcja "Latest Updates" (Dolna)
     local UpdatesContainer = Instance.new("Frame")
     UpdatesContainer.Name = "UpdatesContainer"
-    UpdatesContainer.Size = UDim2.new(1, -40, 1, -160)
-    UpdatesContainer.Position = UDim2.new(0, 0, 0, 150)
-    UpdatesContainer.BackgroundTransparency = 1
+    UpdatesContainer.Size = UDim2.new(1, 0, 1, -160) -- Pełna szerokość, reszta wysokości
+    UpdatesContainer.Position = UDim2.new(0, 0, 0, 160) -- Odsunięcie od góry (140px karty + 20px odstęp)
+    UpdatesContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Ciemne tło
     UpdatesContainer.Parent = Page
+
+    Instance.new("UICorner", UpdatesContainer).CornerRadius = UDim.new(0, 8)
+
+    local UpdatesStroke = Instance.new("UIStroke", UpdatesContainer)
+    UpdatesStroke.Color = Color3.fromRGB(60, 60, 60)
+    UpdatesStroke.Thickness = 1
+    UpdatesStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    -- Wewnętrzny padding dla kontenera aktualizacji
+    local UpdatesPadding = Instance.new("UIPadding")
+    UpdatesPadding.PaddingTop = UDim.new(0, 15)
+    UpdatesPadding.PaddingBottom = UDim.new(0, 15)
+    UpdatesPadding.PaddingLeft = UDim.new(0, 15)
+    UpdatesPadding.PaddingRight = UDim.new(0, 15)
+    UpdatesPadding.Parent = UpdatesContainer
 
     local Header = Instance.new("Frame")
     Header.Size = UDim2.new(1, 0, 0, 30)
@@ -175,7 +197,9 @@ function Dashboard:Render(UI, order)
         LogText.TextSize = 14
         LogText.TextColor3 = Color3.fromRGB(200, 200, 200)
         LogText.Size = UDim2.new(1, -100, 1, 0)
-        LogText.Position = UDim2.new(0, 25, 0, 0)
+        LogText.Position = UDim2.new(0, 25, 0, 0) -- Wyrównanie do góry
+        LogText.TextYAlignment = Enum.TextYAlignment.Center -- Centrowanie w pionie
+        LogText.Size = UDim2.new(1, -100, 1, 0) -- Pełna wysokość wiersza
         LogText.TextXAlignment = Enum.TextXAlignment.Left
         LogText.BackgroundTransparency = 1
         LogText.TextTruncate = Enum.TextTruncate.AtEnd
@@ -189,6 +213,7 @@ function Dashboard:Render(UI, order)
         CommitLabel.Size = UDim2.new(0, 70, 1, 0)
         CommitLabel.Position = UDim2.new(1, -70, 0, 0)
         CommitLabel.TextXAlignment = Enum.TextXAlignment.Center
+        CommitLabel.TextYAlignment = Enum.TextYAlignment.Center -- Centrowanie w pionie
         CommitLabel.BackgroundTransparency = 1
         CommitLabel.Parent = LogItem
 
@@ -204,10 +229,6 @@ function Dashboard:Render(UI, order)
     task.spawn(function()
         -- Sprawdzenie HTTP Service
         local httpEnabled = pcall(function() HttpService:GetAsync("https://google.com") end)
-        -- Uwaga: W Roblox Studio HttpEnabled jest właściwością, ale w grze nie mamy do niej dostępu.
-        -- Najlepszym testem jest próba wykonania requestu.
-        -- Jednak dla bezpieczeństwa i prostoty w skryptach exploitowych często zakłada się, że jest włączone,
-        -- lub sprawdza się pcall na requestach.
 
         -- Pobieranie wersji
         local success, version = pcall(function()
