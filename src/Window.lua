@@ -53,7 +53,7 @@ function Window:Create(config)
     Tag.Name = "XHUB_IDENTIFIER"
     Tag.Parent = ScreenGui
 
-    -- 3. Shadow (Cień) - Dodano brakującą definicję
+    -- 3. Shadow (Cień)
     local Shadow = Instance.new("ImageLabel")
     Shadow.Name = "Shadow"
     Shadow.BackgroundTransparency = 1
@@ -345,7 +345,7 @@ function Window:Create(config)
         Interactions:MakeDraggable(MobileToggle, MobileToggle)
     end
     
-    function UI:CreateTab(name, icon)
+    function UI:CreateTab(name, icon, order)
         local Tab = {}
         
         local TabButton = Instance.new("TextButton")
@@ -356,7 +356,7 @@ function Window:Create(config)
         TabButton.Text = ""
         TabButton.AutoButtonColor = false
         TabButton.BorderSizePixel = 0
-        TabButton.LayoutOrder = #UI.Tabs + 1
+        TabButton.LayoutOrder = order or (#UI.Tabs + 1)
         TabButton.Parent = TabList
 
         local TabIcon = Instance.new("ImageLabel")
@@ -416,8 +416,23 @@ function Window:Create(config)
             TweenService:Create(TabLabel, TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
             
             -- FIX: Animacja linii (obliczamy pozycję względem Sidebaru)
-            -- Startujemy od 46px (wysokość tytułu) + (numer zakładki - 1) * 45px
-            local targetY = 46 + ((TabButton.LayoutOrder - 1) * 45)
+            -- Ponieważ używamy LayoutOrder, musimy znaleźć faktyczną pozycję przycisku w liście
+            -- UIListLayout automatycznie układa elementy, więc możemy pobrać AbsolutePosition
+            -- Ale AbsolutePosition jest w koordynatach ekranu.
+            -- Prościej: policzmy, który to element w posortowanej liście
+
+            local sortedTabs = {}
+            for _, t in pairs(TabList:GetChildren()) do
+                if t:IsA("TextButton") then table.insert(sortedTabs, t) end
+            end
+            table.sort(sortedTabs, function(a, b) return a.LayoutOrder < b.LayoutOrder end)
+
+            local index = 1
+            for i, t in ipairs(sortedTabs) do
+                if t == TabButton then index = i break end
+            end
+
+            local targetY = 46 + ((index - 1) * 45)
             TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
                 Position = UDim2.new(0, 0, 0, targetY)
             }):Play()
@@ -430,10 +445,6 @@ function Window:Create(config)
         if #UI.Tabs == 1 then task.spawn(Select) end
         return {Button = TabButton, Page = Page}
     end
-    
-    -- Domyślna zakładka "Dashboard"
-    UI:CreateTab("Dashboard", "layout-dashboard")
-    UI:CreateTab("Settings", "settings")
 
     return UI
 end

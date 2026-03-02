@@ -10,8 +10,6 @@ local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 
 -- // ŁADOWANIE MODUŁÓW
--- Zauważ, że nie musimy już ładować Icons i Interactions tutaj, 
--- bo Window.lua sam je sobie pobiera do budowy okna.
 local WindowModule = loadstring(game:HttpGet(baseUrl .. "Window.lua"))()
 
 function XHUB:CreateWindow(options)
@@ -31,7 +29,7 @@ function XHUB:CreateWindow(options)
         end
     end
 
-    -- 2. Tworzenie Okna (Window.lua teraz samo dodaje ikony i interakcje!)
+    -- 2. Tworzenie Okna
     local UI = WindowModule:Create({
         Name = Name,
         TestMobile = TestMobile,
@@ -45,9 +43,8 @@ function XHUB:CreateWindow(options)
     local isTweening = false
     local MainFrame = UI.MainFrame
     
-    -- Stałe pozycje
     local CenterPos = UDim2.new(0.5, 0, 0.5, 0)
-    local HiddenPos = UDim2.new(0, -750, 1, 20) -- Chowa się do góry, by zawsze wracać na środek
+    local HiddenPos = UDim2.new(0, -750, 1, 20)
 
     local function toggleMenu()
         if isTweening then return end
@@ -73,37 +70,65 @@ function XHUB:CreateWindow(options)
     end
 
     -- 4. OBSŁUGA ZDARZEŃ
-    -- Bind klawiszowy
     UserInputService.InputBegan:Connect(function(input, gpe)
         if not gpe and input.KeyCode == Enum.KeyCode[Keybind] then
             toggleMenu()
         end
     end)
 
-    -- Obsługa przycisków nagłówka (MinBtn i CloseBtn są już w UI)
     UI.MinBtn.MouseButton1Click:Connect(toggleMenu)
     UI.CloseBtn.MouseButton1Click:Connect(function() 
         UI.ScreenGui:Destroy() 
     end)
     
-    -- Obsługa przycisku mobilnego
     if UI.MobileToggle then
         UI.MobileToggle.MouseButton1Click:Connect(toggleMenu)
     end
 
-    -- 5. PUBLICZNE API (Tabsy, Przyciski itd.)
-    local WindowAPI = {}
+    -- 5. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
 
-    function WindowAPI:CreateTab(name)
-        -- Tutaj w przyszłości dodasz logikę tworzenia stron
-        print("Utworzono zakładkę: " .. name)
-        
+    -- Dashboard (LayoutOrder = 1)
+    local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
+    DashboardModule:Render(UI, 1)
+
+    -- 6. PUBLICZNE API (Tabsy, Przyciski itd.)
+    local WindowAPI = {}
+    local userTabCounter = 2 -- Zaczynamy od 2, bo 1 to Dashboard
+
+    function WindowAPI:CreateTab(name, icon)
+        local TabElements = UI:CreateTab(name, icon or "layers", userTabCounter)
+        userTabCounter = userTabCounter + 1
+
         local TabAPI = {}
         function TabAPI:CreateButton(text, callback)
-            print("Przycisk: " .. text)
+            local Button = Instance.new("TextButton")
+            Button.Name = text
+            Button.Text = text
+            Button.Size = UDim2.new(1, -40, 0, 35)
+            Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Button.Font = Enum.Font.Gotham
+            Button.TextSize = 14
+            Button.Parent = TabElements.Page
+
+            local Stroke = Instance.new("UIStroke", Button)
+            Stroke.Color = Color3.fromRGB(60, 60, 60)
+            Stroke.Thickness = 1
+            Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+            Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 6)
+
+            if callback then
+                Button.MouseButton1Click:Connect(callback)
+            end
+            return Button
         end
         return TabAPI
     end
+
+    -- Settings (LayoutOrder = 999) - Ładujemy na końcu, ale z wysokim LayoutOrder
+    local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
+    SettingsModule:Render(UI, 999)
 
     return WindowAPI
 end
