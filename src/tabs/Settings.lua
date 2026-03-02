@@ -15,6 +15,10 @@ function Settings:Render(UI, order, theme, mainFolder)
     local Page = TabElements.Page
     local ThemeManager = UI.ThemeManager
 
+    local function getColor(colorTable)
+        return Color3.fromRGB(unpack(colorTable))
+    end
+
     local PageLayout = Page:FindFirstChildOfClass("UIListLayout")
     if PageLayout then
         PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -33,6 +37,7 @@ function Settings:Render(UI, order, theme, mainFolder)
     ThemesSection.AutomaticSize = Enum.AutomaticSize.Y
     ThemesSection.BackgroundTransparency = 1
     ThemesSection.LayoutOrder = 1
+    ThemesSection.ZIndex = 10 -- Wyższy ZIndex dla sekcji motywów
     ThemesSection.Parent = Page
 
     local ThemesHeader = Instance.new("TextLabel")
@@ -47,9 +52,10 @@ function Settings:Render(UI, order, theme, mainFolder)
 
     local ThemesContainer = Instance.new("Frame")
     ThemesContainer.Name = "Container"
-    ThemesContainer.Size = UDim2.new(1, 0, 0, 50) -- Wysokość dla dropdowna
+    ThemesContainer.Size = UDim2.new(1, 0, 0, 50)
     ThemesContainer.Position = UDim2.new(0, 0, 0, 25)
     ThemesContainer.Parent = ThemesSection
+    ThemesContainer.ZIndex = 10 -- Wyższy ZIndex dla kontenera
     ThemeManager:Register(ThemesContainer, "BackgroundColor3", "Secondary")
 
     Instance.new("UICorner", ThemesContainer).CornerRadius = UDim.new(0, 6)
@@ -58,31 +64,35 @@ function Settings:Render(UI, order, theme, mainFolder)
     ThemesStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     ThemeManager:Register(ThemesStroke, "Color", "Accent")
 
-    -- Refresh Button (Po lewej)
+    -- Refresh Button (Po lewej, szeroki na 140px)
     local RefreshBtn = Instance.new("TextButton")
-    RefreshBtn.Size = UDim2.new(0, 40, 0, 30)
+    RefreshBtn.Size = UDim2.new(0, 140, 0, 30)
     RefreshBtn.Position = UDim2.new(0, 10, 0.5, 0)
     RefreshBtn.AnchorPoint = Vector2.new(0, 0.5)
-    RefreshBtn.Text = ""
+    RefreshBtn.Text = "   Refresh Themes"
+    RefreshBtn.Font = Enum.Font.GothamMedium
+    RefreshBtn.TextSize = 14
+    RefreshBtn.TextXAlignment = Enum.TextXAlignment.Left
     RefreshBtn.Parent = ThemesContainer
     ThemeManager:Register(RefreshBtn, "BackgroundColor3", "Accent")
+    ThemeManager:Register(RefreshBtn, "TextColor3", "Text")
     Instance.new("UICorner", RefreshBtn).CornerRadius = UDim.new(0, 6)
 
     local RefreshIcon = Instance.new("ImageLabel")
-    RefreshIcon.Size = UDim2.new(0, 18, 0, 18)
-    RefreshIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
-    RefreshIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+    RefreshIcon.Size = UDim2.new(0, 16, 0, 16)
+    RefreshIcon.Position = UDim2.new(1, -10, 0.5, 0)
+    RefreshIcon.AnchorPoint = Vector2.new(1, 0.5)
     RefreshIcon.BackgroundTransparency = 1
     RefreshIcon.Parent = RefreshBtn
     ThemeManager:Register(RefreshIcon, "ImageColor3", "Text")
     Icons:Apply(RefreshIcon, "refresh-cw")
 
-    -- Dropdown (Po prawej)
+    -- Dropdown (Po prawej, reszta miejsca)
     local Dropdown = Instance.new("Frame")
-    Dropdown.Size = UDim2.new(1, -70, 0, 30)
-    Dropdown.Position = UDim2.new(0, 60, 0.5, 0)
+    Dropdown.Size = UDim2.new(1, -170, 0, 30) -- 140px btn + 20px margin + 10px padding
+    Dropdown.Position = UDim2.new(0, 160, 0.5, 0)
     Dropdown.AnchorPoint = Vector2.new(0, 0.5)
-    Dropdown.ZIndex = 10
+    Dropdown.ZIndex = 20 -- Bardzo wysoki ZIndex
     Dropdown.Parent = ThemesContainer
     ThemeManager:Register(Dropdown, "BackgroundColor3", "Main")
     Instance.new("UICorner", Dropdown).CornerRadius = UDim.new(0, 6)
@@ -94,7 +104,7 @@ function Settings:Render(UI, order, theme, mainFolder)
     DropdownBtn.Font = Enum.Font.Gotham
     DropdownBtn.TextSize = 14
     DropdownBtn.TextXAlignment = Enum.TextXAlignment.Left
-    DropdownBtn.ZIndex = 11
+    DropdownBtn.ZIndex = 21
     DropdownBtn.Parent = Dropdown
     ThemeManager:Register(DropdownBtn, "TextColor3", "Text")
 
@@ -103,10 +113,16 @@ function Settings:Render(UI, order, theme, mainFolder)
     DropdownIcon.Position = UDim2.new(1, -10, 0.5, 0)
     DropdownIcon.AnchorPoint = Vector2.new(1, 0.5)
     DropdownIcon.BackgroundTransparency = 1
-    DropdownIcon.ZIndex = 11
+    DropdownIcon.ZIndex = 21
     DropdownIcon.Parent = Dropdown
     ThemeManager:Register(DropdownIcon, "ImageColor3", "Text_Secondary")
     Icons:Apply(DropdownIcon, "chevron-down")
+
+    -- Lista rozwijana (musi być poza Dropdownem wizualnie, ale w strukturze wewnątrz)
+    -- Ustawiamy ClipsDescendants = false na rodzicach, aby lista mogła wystawać
+    ThemesSection.ClipsDescendants = false
+    ThemesContainer.ClipsDescendants = false
+    Dropdown.ClipsDescendants = false
 
     local DropdownList = Instance.new("ScrollingFrame")
     DropdownList.Size = UDim2.new(1, 0, 0, 0)
@@ -115,15 +131,14 @@ function Settings:Render(UI, order, theme, mainFolder)
     DropdownList.ScrollBarThickness = 2
     DropdownList.BackgroundTransparency = 1
     DropdownList.Visible = false
-    DropdownList.ZIndex = 20
+    DropdownList.ZIndex = 30 -- Najwyższy ZIndex
     DropdownList.Parent = Dropdown
 
-    -- Tło listy dropdowna (osobna ramka dla cienia/obramowania)
     local ListBg = Instance.new("Frame")
-    ListBg.Size = UDim2.new(1, 0, 0, 0) -- Dynamiczne
+    ListBg.Size = UDim2.new(1, 0, 0, 0)
     ListBg.Position = UDim2.new(0, 0, 1, 5)
     ListBg.Visible = false
-    ListBg.ZIndex = 19
+    ListBg.ZIndex = 29
     ListBg.Parent = Dropdown
     ThemeManager:Register(ListBg, "BackgroundColor3", "Main")
     Instance.new("UICorner", ListBg).CornerRadius = UDim.new(0, 6)
@@ -175,7 +190,7 @@ function Settings:Render(UI, order, theme, mainFolder)
                     Item.Font = Enum.Font.Gotham
                     Item.TextSize = 14
                     Item.TextXAlignment = Enum.TextXAlignment.Left
-                    Item.ZIndex = 21
+                    Item.ZIndex = 31
                     Item.Parent = DropdownList
                     ThemeManager:Register(Item, "TextColor3", "Text")
 
@@ -183,7 +198,6 @@ function Settings:Render(UI, order, theme, mainFolder)
                         DropdownBtn.Text = "   " .. themeName
                         ToggleDropdown()
 
-                        -- Ładowanie i aplikowanie motywu
                         local success, data = pcall(function()
                             return HttpService:JSONDecode(readfile(file))
                         end)
@@ -199,13 +213,12 @@ function Settings:Render(UI, order, theme, mainFolder)
 
     RefreshBtn.MouseButton1Click:Connect(function()
         LoadThemes()
-        -- Animacja obrotu
         local tween = TweenService:Create(RefreshIcon, TweenInfo.new(0.5), {Rotation = 360})
         tween:Play()
         tween.Completed:Connect(function() RefreshIcon.Rotation = 0 end)
     end)
 
-    LoadThemes() -- Inicjalne ładowanie
+    LoadThemes()
 
     -- Sekcja: Other Settings
     local SettingsSection = Instance.new("Frame")
@@ -214,7 +227,7 @@ function Settings:Render(UI, order, theme, mainFolder)
     SettingsSection.AutomaticSize = Enum.AutomaticSize.Y
     SettingsSection.BackgroundTransparency = 1
     SettingsSection.LayoutOrder = 2
-    SettingsSection.Position = UDim2.new(0, 0, 0, 20)
+    SettingsSection.ZIndex = 1 -- Niższy ZIndex
     SettingsSection.Parent = Page
 
     local SettingsHeader = Instance.new("TextLabel")
@@ -293,7 +306,6 @@ function Settings:Render(UI, order, theme, mainFolder)
         antiAfkEnabled = not antiAfkEnabled
 
         if antiAfkEnabled then
-            -- Ręczna zmiana koloru na Success (ThemeManager nie obsługuje stanów logicznych bezpośrednio, więc robimy to ręcznie, ale używając kolorów z motywu)
             local successColor = Color3.fromRGB(unpack(ThemeManager.CurrentTheme.Success))
             TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = successColor}):Play()
             ToggleCircle:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)

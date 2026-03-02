@@ -22,7 +22,7 @@ function Window:Create(config)
     local ThemeManager = { Elements = {}, CurrentTheme = config.Theme }
 
     local function getColor(colorTable)
-        if not colorTable then return Color3.fromRGB(255, 0, 255) end -- Magenta error color
+        if not colorTable then return Color3.fromRGB(255, 0, 255) end
         return Color3.fromRGB(unpack(colorTable))
     end
 
@@ -100,6 +100,29 @@ function Window:Create(config)
     TopBar.ZIndex = 5
     TopBar.Parent = MainFrame
     UI.TopBar = TopBar
+
+    -- // PRZYWRÓCONY TYTUŁ
+    if config.Tittle and config.Tittle ~= "" then
+        local TopTitle = Instance.new("TextLabel")
+        TopTitle.Name = "TopTitle"
+        TopTitle.Text = config.Tittle
+        TopTitle.Font = Enum.Font.GothamMedium
+        TopTitle.TextSize = 14
+        TopTitle.BackgroundTransparency = 1
+        TopTitle.Size = UDim2.new(1, -115, 1, 0)
+        TopTitle.Position = UDim2.new(0, 10, 0, 0)
+        TopTitle.Parent = TopBar
+        ThemeManager:Register(TopTitle, "TextColor3", "Text_Secondary")
+
+        if config.TittlePos == "Center" then
+            TopTitle.TextXAlignment = Enum.TextXAlignment.Center
+            TopTitle.Position = UDim2.new(0, 0, 0, 0)
+            TopTitle.Size = UDim2.new(1, 0, 1, 0)
+            TopTitle.ZIndex = 4
+        else
+            TopTitle.TextXAlignment = Enum.TextXAlignment.Left
+        end
+    end
 
     local TopLine = Instance.new("Frame")
     TopLine.Size = UDim2.new(1, 0, 0, 1)
@@ -415,7 +438,7 @@ function Window:Create(config)
         Page.Size = UDim2.new(1, 0, 1, 0)
         Page.BackgroundTransparency = 1
         Page.BorderSizePixel = 0
-        Page.Visible = false -- Domyślnie ukryta
+        Page.Visible = false
         Page.CanvasSize = UDim2.new(0,0,0,0)
         Page.ScrollBarThickness = 0
         Page.Parent = PagesContainer
@@ -431,24 +454,19 @@ function Window:Create(config)
             UI.GlobalIndicator.Visible = true
 
             if UI.SelectedTab then
-                -- Reset poprzedniej zakładki
                 local prevIcon = UI.SelectedTab:FindFirstChild("Icon")
                 local prevLabel = UI.SelectedTab:FindFirstChild("Label")
                 if prevIcon then TweenService:Create(prevIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
                 if prevLabel then TweenService:Create(prevLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
             end
 
-            -- Ukryj wszystkie strony
             for _, p in pairs(UI.Pages) do p.Visible = false end
-            -- Pokaż aktualną
             Page.Visible = true
             UI.SelectedTab = TabButton
 
-            -- Aktywacja nowej zakładki
             TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
             TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
             
-            -- Animacja linii
             local sortedTabs = {}
             for _, t in pairs(TabList:GetChildren()) do
                 if t:IsA("TextButton") then table.insert(sortedTabs, t) end
