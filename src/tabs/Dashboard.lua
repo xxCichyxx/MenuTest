@@ -11,17 +11,18 @@ function Dashboard:Render(UI, order)
     local TabElements = UI:CreateTab("Dashboard", "layout-dashboard", order or 1)
     local Page = TabElements.Page
 
-    -- 0. Spacer / Padding dla całej strony
-    local PagePadding = Instance.new("UIPadding")
-    PagePadding.PaddingTop = UDim.new(0, 20)
-    PagePadding.PaddingLeft = UDim.new(0, 0) -- PaddingLeft jest już w Window.lua (20px)
-    PagePadding.PaddingRight = UDim.new(0, 20) -- Dodajemy margines z prawej
-    PagePadding.Parent = Page
+    -- 0. Spacer (Odstęp od góry)
+    -- Wymuszamy obniżenie zawartości o 20px
+    local Spacer = Instance.new("Frame")
+    Spacer.Name = "Spacer"
+    Spacer.Size = UDim2.new(1, -40, 0, 20)
+    Spacer.BackgroundTransparency = 1
+    Spacer.Parent = Page
 
     -- 1. Sekcja "Quick Links" (Górna)
     local QuickLinksContainer = Instance.new("Frame")
     QuickLinksContainer.Name = "QuickLinks"
-    QuickLinksContainer.Size = UDim2.new(1, 0, 0, 140) -- Pełna szerokość (minus paddingi)
+    QuickLinksContainer.Size = UDim2.new(1, -40, 0, 140) -- Szerokość z marginesem 40px
     QuickLinksContainer.BackgroundTransparency = 1
     QuickLinksContainer.Parent = Page
 
@@ -117,8 +118,8 @@ function Dashboard:Render(UI, order)
     -- 2. Sekcja "Latest Updates" (Dolna)
     local UpdatesContainer = Instance.new("Frame")
     UpdatesContainer.Name = "UpdatesContainer"
-    UpdatesContainer.Size = UDim2.new(1, 0, 1, -160) -- Pełna szerokość, reszta wysokości
-    UpdatesContainer.Position = UDim2.new(0, 0, 0, 160) -- Odsunięcie od góry (140px karty + 20px odstęp)
+    -- Szerokość 100% - 40px marginesu. Wysokość 185px (wypełnia resztę widocznego obszaru)
+    UpdatesContainer.Size = UDim2.new(1, -40, 0, 185)
     UpdatesContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Ciemne tło
     UpdatesContainer.Parent = Page
 
@@ -197,9 +198,8 @@ function Dashboard:Render(UI, order)
         LogText.TextSize = 14
         LogText.TextColor3 = Color3.fromRGB(200, 200, 200)
         LogText.Size = UDim2.new(1, -100, 1, 0)
-        LogText.Position = UDim2.new(0, 25, 0, 0) -- Wyrównanie do góry
-        LogText.TextYAlignment = Enum.TextYAlignment.Center -- Centrowanie w pionie
-        LogText.Size = UDim2.new(1, -100, 1, 0) -- Pełna wysokość wiersza
+        LogText.Position = UDim2.new(0, 25, 0, 0)
+        LogText.TextYAlignment = Enum.TextYAlignment.Center
         LogText.TextXAlignment = Enum.TextXAlignment.Left
         LogText.BackgroundTransparency = 1
         LogText.TextTruncate = Enum.TextTruncate.AtEnd
@@ -213,7 +213,7 @@ function Dashboard:Render(UI, order)
         CommitLabel.Size = UDim2.new(0, 70, 1, 0)
         CommitLabel.Position = UDim2.new(1, -70, 0, 0)
         CommitLabel.TextXAlignment = Enum.TextXAlignment.Center
-        CommitLabel.TextYAlignment = Enum.TextYAlignment.Center -- Centrowanie w pionie
+        CommitLabel.TextYAlignment = Enum.TextYAlignment.Center
         CommitLabel.BackgroundTransparency = 1
         CommitLabel.Parent = LogItem
 
@@ -227,23 +227,20 @@ function Dashboard:Render(UI, order)
 
     -- 3. Asynchroniczne pobieranie danych
     task.spawn(function()
-        -- Sprawdzenie HTTP Service
         local httpEnabled = pcall(function() HttpService:GetAsync("https://google.com") end)
 
-        -- Pobieranie wersji
         local success, version = pcall(function()
             return game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/version.txt")
         end)
 
         if versionLabel then
             if success and version then
-                versionLabel.Text = "v" .. version:gsub("^%s*(.-)%s*$", "%1") -- Trim whitespace
+                versionLabel.Text = "v" .. version:gsub("^%s*(.-)%s*$", "%1")
             else
                 versionLabel.Text = "Unknown"
             end
         end
 
-        -- Pobieranie changelogu
         local success, response = pcall(function()
             return game:HttpGet("https://api.github.com/repos/xxCichyxx/MenuTest/commits")
         end)
@@ -254,7 +251,6 @@ function Dashboard:Render(UI, order)
             end)
 
             if successJson and type(commits) == "table" then
-                -- Czyścimy listę (np. szkielety ładowania, jeśli były)
                 for _, child in pairs(ChangelogList:GetChildren()) do
                     if child:IsA("Frame") then child:Destroy() end
                 end
