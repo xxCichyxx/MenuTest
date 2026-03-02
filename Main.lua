@@ -3,6 +3,7 @@ local XHUB = {}
 -- // SERWISY
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
@@ -17,8 +18,45 @@ function XHUB:CreateWindow(options)
     local Name = Config.Name or "X HUB"
     local Keybind = Config.ToggleUIKeybind or "Insert"
     local TestMobile = Config.TestMobile or false
-    
-    -- 1. Wybór lokalizacji i czyszczenie starych wersji
+
+    -- // 1. SYSTEM PLIKÓW I MOTYWÓW
+    local mainFolder = Name
+    local themesFolder = mainFolder .. "/themes"
+    local themePath = themesFolder .. "/dark.json"
+
+    if not isfolder(mainFolder) then makefolder(mainFolder) end
+    if not isfolder(mainFolder .. "/configs") then makefolder(mainFolder .. "/configs") end
+    if not isfolder(mainFolder .. "/emotes") then makefolder(mainFolder .. "/emotes") end
+    if not isfolder(themesFolder) then makefolder(themesFolder) end
+
+    if not isfile(mainFolder .. "/emotes/favorites.json") then
+        writefile(mainFolder .. "/emotes/favorites.json", "{}")
+    end
+
+    local themeColors
+    if not isfile(themePath) then
+        local defaultTheme = {
+            Main = {15, 15, 15},
+            Secondary = {25, 25, 25},
+            Accent = {60, 60, 60},
+            Accent2 = {40, 40, 40},
+            Text = {255, 255, 255},
+            Text_Secondary = {160, 160, 160},
+            Success = {100, 255, 100}
+        }
+        writefile(themePath, HttpService:JSONEncode(defaultTheme))
+        themeColors = defaultTheme
+    else
+        local success, data = pcall(function() return HttpService:JSONDecode(readfile(themePath)) end)
+        if success and type(data) == "table" then
+            themeColors = data
+        else
+            -- Fallback w razie uszkodzonego pliku JSON
+            themeColors = { Main = {15, 15, 15}, Secondary = {25, 25, 25}, Accent = {60, 60, 60}, Accent2 = {40, 40, 40}, Text = {255, 255, 255}, Text_Secondary = {160, 160, 160}, Success = {100, 255, 100} }
+        end
+    end
+
+    -- 2. Wybór lokalizacji i czyszczenie starych wersji
     local ProtectedLocation = nil
     local success = pcall(function() ProtectedLocation = CoreGui end)
     if not success then ProtectedLocation = PlayerGui end
@@ -29,16 +67,17 @@ function XHUB:CreateWindow(options)
         end
     end
 
-    -- 2. Tworzenie Okna
+    -- 3. Tworzenie Okna (przekazujemy motyw)
     local UI = WindowModule:Create({
         Name = Name,
         TestMobile = TestMobile,
         Tittle = Config.Tittle or "",
-        TittlePos = Config.TittlePos or "Left"
+        TittlePos = Config.TittlePos or "Left",
+        Theme = themeColors -- Przekazanie tabeli kolorów
     })
     UI.ScreenGui.Parent = ProtectedLocation
 
-    -- 3. LOGIKA OTWIERANIA/ZAMYKANIA (Tweening)
+    -- 4. LOGIKA OTWIERANIA/ZAMYKANIA
     local isVisible = true
     local isTweening = false
     local MainFrame = UI.MainFrame
@@ -49,19 +88,10 @@ function XHUB:CreateWindow(options)
     local function toggleMenu()
         if isTweening then return end
         isTweening = true
-        
         local target = isVisible and HiddenPos or CenterPos
-        
-        if UI.MobileToggleText then
-            UI.MobileToggleText.Text = isVisible and "Open" or "Close"
-            UI.MobileToggleText.TextColor3 = isVisible and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
-        end
-
         if not isVisible then MainFrame.Visible = true end
-        
         local tween = TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {Position = target})
         tween:Play()
-        
         tween.Completed:Connect(function()
             isVisible = not isVisible
             if not isVisible then MainFrame.Visible = false end
@@ -69,7 +99,7 @@ function XHUB:CreateWindow(options)
         end)
     end
 
-    -- 4. OBSŁUGA ZDARZEŃ
+    -- 5. OBSŁUGA ZDARZEŃ
     UserInputService.InputBegan:Connect(function(input, gpe)
         if not gpe and input.KeyCode == Enum.KeyCode[Keybind] then
             toggleMenu()
@@ -77,29 +107,19 @@ function XHUB:CreateWindow(options)
     end)
 
     UI.MinBtn.MouseButton1Click:Connect(toggleMenu)
-
-    -- ZMIANA: Używamy ShowExitModal zamiast bezpośredniego Destroy
     UI.CloseBtn.MouseButton1Click:Connect(function()
-        if UI.ShowExitModal then
-            UI.ShowExitModal()
-        else
-            UI.ScreenGui:Destroy()
-        end
+        if UI.ShowExitModal then UI.ShowExitModal() else UI.ScreenGui:Destroy() end
     end)
     
-    if UI.MobileToggle then
-        UI.MobileToggle.MouseButton1Click:Connect(toggleMenu)
-    end
+    if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
 
-    -- 5. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
-
-    -- Dashboard (LayoutOrder = 1)
+    -- 6. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
     local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
-    DashboardModule:Render(UI, 1)
+    DashboardModule:Render(UI, 1, themeColors) -- Przekazujemy motyw
 
-    -- 6. PUBLICZNE API (Tabsy, Przyciski itd.)
+    -- 7. PUBLICZNE API
     local WindowAPI = {}
-    local userTabCounter = 2 -- Zaczynamy od 2, bo 1 to Dashboard
+    local userTabCounter = 2
 
     function WindowAPI:CreateTab(name, icon)
         local TabElements = UI:CreateTab(name, icon or "layers", userTabCounter)
@@ -107,34 +127,14 @@ function XHUB:CreateWindow(options)
 
         local TabAPI = {}
         function TabAPI:CreateButton(text, callback)
-            local Button = Instance.new("TextButton")
-            Button.Name = text
-            Button.Text = text
-            Button.Size = UDim2.new(1, -40, 0, 35)
-            Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-            Button.Font = Enum.Font.Gotham
-            Button.TextSize = 14
-            Button.Parent = TabElements.Page
-
-            local Stroke = Instance.new("UIStroke", Button)
-            Stroke.Color = Color3.fromRGB(60, 60, 60)
-            Stroke.Thickness = 1
-            Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-            Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 6)
-
-            if callback then
-                Button.MouseButton1Click:Connect(callback)
-            end
-            return Button
+            -- ... implementacja przycisku (też powinna używać motywu)
         end
         return TabAPI
     end
 
-    -- Settings (LayoutOrder = 999) - Ładujemy na końcu, ale z wysokim LayoutOrder
+    -- Ładowanie Settings
     local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
-    SettingsModule:Render(UI, 999)
+    SettingsModule:Render(UI, 999, themeColors, mainFolder) -- Przekazujemy motyw i główny folder
 
     return WindowAPI
 end

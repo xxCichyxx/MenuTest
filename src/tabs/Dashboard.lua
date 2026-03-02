@@ -7,9 +7,14 @@ local HttpService = game:GetService("HttpService")
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 local Icons = loadstring(game:HttpGet(baseUrl .. "Icons.lua"))()
 
-function Dashboard:Render(UI, order)
+function Dashboard:Render(UI, order, theme)
     local TabElements = UI:CreateTab("Dashboard", "layout-dashboard", order or 1)
     local Page = TabElements.Page
+
+    -- Funkcja pomocnicza do konwersji tabeli {r, g, b} na Color3
+    local function getColor(colorTable)
+        return Color3.fromRGB(unpack(colorTable))
+    end
 
     -- Poprawka: Ustawiamy sortowanie w layoucie strony, aby mieć kontrolę nad kolejnością
     local PageLayout = Page:FindFirstChildOfClass("UIListLayout")
@@ -45,13 +50,13 @@ function Dashboard:Render(UI, order)
         local Card = Instance.new("Frame")
         Card.Name = "Card_" .. title
         Card.Size = UDim2.new(0.333, -10, 1, 0)
-        Card.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        Card.BackgroundColor3 = getColor(theme.Secondary) -- Użycie motywu
         Card.Parent = QuickLinksContainer
 
         Instance.new("UICorner", Card).CornerRadius = UDim.new(0, 8)
 
         local Stroke = Instance.new("UIStroke", Card)
-        Stroke.Color = Color3.fromRGB(60, 60, 60)
+        Stroke.Color = getColor(theme.Accent) -- Użycie motywu
         Stroke.Thickness = 1
         Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
@@ -60,7 +65,7 @@ function Dashboard:Render(UI, order)
         Icon.Position = UDim2.new(0.5, 0, 0, 15)
         Icon.AnchorPoint = Vector2.new(0.5, 0)
         Icon.BackgroundTransparency = 1
-        Icon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+        Icon.ImageColor3 = getColor(theme.Text) -- Użycie motywu
         Icon.Parent = Card
         Icons:Apply(Icon, iconName)
 
@@ -68,7 +73,7 @@ function Dashboard:Render(UI, order)
         TitleLabel.Text = title
         TitleLabel.Font = Enum.Font.GothamBold
         TitleLabel.TextSize = 14
-        TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TitleLabel.TextColor3 = getColor(theme.Text) -- Użycie motywu
         TitleLabel.Size = UDim2.new(1, 0, 0, 20)
         TitleLabel.Position = UDim2.new(0, 0, 0, 55)
         TitleLabel.BackgroundTransparency = 1
@@ -78,7 +83,7 @@ function Dashboard:Render(UI, order)
         SubLabel.Text = subtitle
         SubLabel.Font = Enum.Font.Gotham
         SubLabel.TextSize = 12
-        SubLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        SubLabel.TextColor3 = getColor(theme.Text_Secondary) -- Użycie motywu
         SubLabel.Size = UDim2.new(1, 0, 0, 15)
         SubLabel.Position = UDim2.new(0, 0, 0, 75)
         SubLabel.BackgroundTransparency = 1
@@ -92,8 +97,8 @@ function Dashboard:Render(UI, order)
         Btn.Text = btnText or "Open"
         Btn.Font = Enum.Font.GothamMedium
         Btn.TextSize = 12
-        Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        Btn.TextColor3 = getColor(theme.Text) -- Użycie motywu
+        Btn.BackgroundColor3 = getColor(theme.Accent2) -- Użycie motywu
         Btn.Size = UDim2.new(0.8, 0, 0, 30)
         Btn.Position = UDim2.new(0.5, 0, 1, -15)
         Btn.AnchorPoint = Vector2.new(0.5, 1)
@@ -105,7 +110,7 @@ function Dashboard:Render(UI, order)
         LinkIcon.Position = UDim2.new(1, -20, 0.5, 0)
         LinkIcon.AnchorPoint = Vector2.new(0.5, 0.5)
         LinkIcon.BackgroundTransparency = 1
-        LinkIcon.ImageColor3 = Color3.fromRGB(200, 200, 200)
+        LinkIcon.ImageColor3 = getColor(theme.Text_Secondary) -- Użycie motywu
         LinkIcon.Parent = Btn
         Icons:Apply(LinkIcon, "external-link")
 
@@ -118,22 +123,22 @@ function Dashboard:Render(UI, order)
         return Btn
     end
 
-    createCard("Discord", "Join community", "users", "Copy", "https://dsc.gg/xeno-scripts-pl")
-    createCard("Version", "Ładowanie...", "package", "Copy", "0.0.1")
-    createCard("GitHub", "View source", "github", "Copy", "https://github.com/xxCichyxx/MenuTest")
+    createCard("Discord", "Join community", "users", "Join", "https://dsc.gg/xeno-scripts-pl")
+    createCard("Version", "Ładowanie...", "package", "Copy ID")
+    createCard("GitHub", "View source", "github", "Open", "https://github.com/xxCichyxx/MenuTest")
 
     -- 2. Sekcja "Latest Updates" (Dolna)
     local UpdatesContainer = Instance.new("Frame")
     UpdatesContainer.Name = "UpdatesContainer"
     UpdatesContainer.Size = UDim2.new(1, -40, 0, 185)
-    UpdatesContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    UpdatesContainer.BackgroundColor3 = getColor(theme.Secondary) -- Użycie motywu
     UpdatesContainer.LayoutOrder = 3 -- Ustawiamy kolejność
     UpdatesContainer.Parent = Page
 
     Instance.new("UICorner", UpdatesContainer).CornerRadius = UDim.new(0, 8)
 
     local UpdatesStroke = Instance.new("UIStroke", UpdatesContainer)
-    UpdatesStroke.Color = Color3.fromRGB(60, 60, 60)
+    UpdatesStroke.Color = getColor(theme.Accent) -- Użycie motywu
     UpdatesStroke.Thickness = 1
     UpdatesStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
@@ -154,7 +159,7 @@ function Dashboard:Render(UI, order)
     HeaderIcon.Position = UDim2.new(0, 0, 0.5, 0)
     HeaderIcon.AnchorPoint = Vector2.new(0, 0.5)
     HeaderIcon.BackgroundTransparency = 1
-    HeaderIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+    HeaderIcon.ImageColor3 = getColor(theme.Text) -- Użycie motywu
     HeaderIcon.Parent = Header
     Icons:Apply(HeaderIcon, "activity")
 
@@ -162,7 +167,7 @@ function Dashboard:Render(UI, order)
     HeaderText.Text = "Latest Updates"
     HeaderText.Font = Enum.Font.GothamBold
     HeaderText.TextSize = 16
-    HeaderText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HeaderText.TextColor3 = getColor(theme.Text) -- Użycie motywu
     HeaderText.Size = UDim2.new(1, -30, 1, 0)
     HeaderText.Position = UDim2.new(0, 30, 0, 0)
     HeaderText.TextXAlignment = Enum.TextXAlignment.Left
@@ -194,7 +199,7 @@ function Dashboard:Render(UI, order)
         Bullet.Position = UDim2.new(0, 5, 0.5, 0)
         Bullet.AnchorPoint = Vector2.new(0, 0.5)
         Bullet.BackgroundTransparency = 1
-        Bullet.ImageColor3 = Color3.fromRGB(100, 255, 100)
+        Bullet.ImageColor3 = getColor(theme.Success) -- Użycie motywu
         Bullet.Parent = LogItem
         Icons:Apply(Bullet, "arrow-right")
 
@@ -202,7 +207,7 @@ function Dashboard:Render(UI, order)
         LogText.Text = message
         LogText.Font = Enum.Font.Gotham
         LogText.TextSize = 14
-        LogText.TextColor3 = Color3.fromRGB(200, 200, 200)
+        LogText.TextColor3 = getColor(theme.Text_Secondary) -- Użycie motywu
         LogText.Position = UDim2.new(0, 25, 0, 0)
         LogText.TextYAlignment = Enum.TextYAlignment.Center
         LogText.Size = UDim2.new(1, -100, 1, 0)
@@ -215,7 +220,7 @@ function Dashboard:Render(UI, order)
         CommitLabel.Text = commitId
         CommitLabel.Font = Enum.Font.Gotham
         CommitLabel.TextSize = 12
-        CommitLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+        CommitLabel.TextColor3 = getColor(theme.Text_Secondary) -- Użycie motywu
         CommitLabel.Size = UDim2.new(0, 70, 1, 0)
         CommitLabel.Position = UDim2.new(1, -70, 0, 0)
         CommitLabel.TextXAlignment = Enum.TextXAlignment.Center
@@ -226,7 +231,7 @@ function Dashboard:Render(UI, order)
         local Separator = Instance.new("Frame")
         Separator.Size = UDim2.new(1, 0, 0, 1)
         Separator.Position = UDim2.new(0, 0, 1, -1)
-        Separator.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        Separator.BackgroundColor3 = getColor(theme.Accent2) -- Użycie motywu
         Separator.BorderSizePixel = 0
         Separator.Parent = LogItem
     end

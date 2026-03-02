@@ -18,6 +18,22 @@ function Window:Create(config)
     UI.Pages = {}
     UI.SelectedTab = nil
 
+    -- Pobieranie motywu z konfiguracji lub użycie domyślnego
+    local Theme = config.Theme or {
+        Main = {15, 15, 15},
+        Secondary = {25, 25, 25},
+        Accent = {60, 60, 60},
+        Accent2 = {40, 40, 40},
+        Text = {255, 255, 255},
+        Text_Secondary = {160, 160, 160},
+        Success = {100, 255, 100}
+    }
+
+    -- Funkcja pomocnicza do konwersji tabeli {r, g, b} na Color3
+    local function getColor(colorTable)
+        return Color3.fromRGB(unpack(colorTable))
+    end
+
     local isTouch = UserInputService.TouchEnabled or config.TestMobile
     
     -- 1. USTALANIE LOKALIZACJI I RESET STAREGO GUI
@@ -71,7 +87,7 @@ function Window:Create(config)
     MainFrame.Size = UDim2.new(0, 700, 0, 400)
     MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
     MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    MainFrame.BackgroundColor3 = getColor(Theme.Main) -- Użycie motywu
     MainFrame.BorderSizePixel = 0
     MainFrame.ClipsDescendants = true
     MainFrame.ZIndex = 1
@@ -80,7 +96,7 @@ function Window:Create(config)
 
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
     local MainStroke = Instance.new("UIStroke", MainFrame)
-    MainStroke.Color = Color3.fromRGB(80, 80, 80)
+    MainStroke.Color = getColor(Theme.Accent) -- Użycie motywu
     MainStroke.Thickness = 1.6
     MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
@@ -99,7 +115,7 @@ function Window:Create(config)
         TopTitle.Text = config.Tittle
         TopTitle.Font = Enum.Font.GothamMedium
         TopTitle.TextSize = 14
-        TopTitle.TextColor3 = Color3.fromRGB(180, 180, 180) 
+        TopTitle.TextColor3 = getColor(Theme.Text_Secondary) -- Użycie motywu
         TopTitle.BackgroundTransparency = 1
         TopTitle.Size = UDim2.new(1, -115, 1, 0) 
         TopTitle.Position = UDim2.new(0, 10, 0, 0) 
@@ -120,7 +136,7 @@ function Window:Create(config)
     local TopLine = Instance.new("Frame")
     TopLine.Size = UDim2.new(1, 0, 0, 1)
     TopLine.Position = UDim2.new(0, 0, 0, 32)
-    TopLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    TopLine.BackgroundColor3 = getColor(Theme.Accent) -- Użycie motywu
     TopLine.BorderSizePixel = 0
     TopLine.ZIndex = 10
     TopLine.Parent = MainFrame
@@ -138,7 +154,7 @@ function Window:Create(config)
     GlobalIndicator.Name = "GlobalIndicator"
     GlobalIndicator.Size = UDim2.new(0, 2, 0, 45)
     GlobalIndicator.Position = UDim2.new(0, 0, 0, 46) -- Startuje pod tytułem
-    GlobalIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    GlobalIndicator.BackgroundColor3 = getColor(Theme.Text) -- Użycie motywu
     GlobalIndicator.BorderSizePixel = 0
     GlobalIndicator.ZIndex = 20
     GlobalIndicator.Visible = false
@@ -148,7 +164,7 @@ function Window:Create(config)
     local VerticalLine = Instance.new("Frame")
     VerticalLine.Size = UDim2.new(0, 1, 1, 0)
     VerticalLine.Position = UDim2.new(1, 0, 0, 0)
-    VerticalLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    VerticalLine.BackgroundColor3 = getColor(Theme.Accent) -- Użycie motywu
     VerticalLine.BorderSizePixel = 0
     VerticalLine.ZIndex = 10
     VerticalLine.Parent = Sidebar
@@ -158,7 +174,7 @@ function Window:Create(config)
     Title.Text = config.Name or "X HUB"
     Title.Font = Enum.Font.GothamBold
     Title.TextSize = 16
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextColor3 = getColor(Theme.Text) -- Użycie motywu
     Title.Size = UDim2.new(1, 0, 0, 45)
     Title.BackgroundTransparency = 1
     Title.Parent = Sidebar
@@ -166,7 +182,7 @@ function Window:Create(config)
     local TitleLine = Instance.new("Frame")
     TitleLine.Size = UDim2.new(1, 0, 0, 1)
     TitleLine.Position = UDim2.new(0, 0, 0, 45)
-    TitleLine.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    TitleLine.BackgroundColor3 = getColor(Theme.Accent) -- Użycie motywu
     TitleLine.BorderSizePixel = 0
     TitleLine.ZIndex = 10
     TitleLine.Parent = Sidebar
@@ -269,7 +285,7 @@ function Window:Create(config)
     ResizeIcon.Position = UDim2.new(0.5, 0, 0.5, 0)
     ResizeIcon.AnchorPoint = Vector2.new(0.5, 0.5)
     ResizeIcon.BackgroundTransparency = 1
-    ResizeIcon.ImageColor3 = Color3.fromRGB(80, 80, 80)
+    ResizeIcon.ImageColor3 = getColor(Theme.Accent) -- Użycie motywu
     ResizeIcon.Parent = ResizeHandle
     Icons:Apply(ResizeIcon, "arrow-down-right")
 
@@ -294,7 +310,7 @@ function Window:Create(config)
         MobileToggle.Name = "MobileToggle"
         MobileToggle.Size = UDim2.new(0, 55, 0, 65) 
         MobileToggle.Position = UDim2.new(0, 20, 0.5, -32)
-        MobileToggle.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        MobileToggle.BackgroundColor3 = getColor(Theme.Main) -- Użycie motywu
         MobileToggle.BorderSizePixel = 0
         MobileToggle.Text = ""
         MobileToggle.ZIndex = 100
@@ -303,7 +319,7 @@ function Window:Create(config)
 
         Instance.new("UICorner", MobileToggle).CornerRadius = UDim.new(0, 10)
         local Stroke = Instance.new("UIStroke", MobileToggle)
-        Stroke.Color = Color3.fromRGB(60, 60, 60)
+        Stroke.Color = getColor(Theme.Accent) -- Użycie motywu
         Stroke.Thickness = 1.5
 
         local MobileIcon = Instance.new("ImageLabel")
@@ -312,7 +328,7 @@ function Window:Create(config)
         MobileIcon.Position = UDim2.new(0.5, 0, 0.4, 0)
         MobileIcon.AnchorPoint = Vector2.new(0.5, 0.5)
         MobileIcon.BackgroundTransparency = 1
-        MobileIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
+        MobileIcon.ImageColor3 = getColor(Theme.Text) -- Użycie motywu
         MobileIcon.Parent = MobileToggle
         Icons:Apply(MobileIcon, "menu")
 
@@ -338,7 +354,7 @@ function Window:Create(config)
 
             if isVisible then
                 ToggleText.Text = "OPEN"
-                ToggleText.TextColor3 = Color3.fromRGB(100, 255, 100) -- Zielony
+                ToggleText.TextColor3 = getColor(Theme.Success) -- Użycie motywu
             else
                 ToggleText.Text = "CLOSE"
                 ToggleText.TextColor3 = Color3.fromRGB(255, 100, 100) -- Czerwony
@@ -363,13 +379,13 @@ function Window:Create(config)
         Modal.Size = UDim2.new(0, 300, 0, 150)
         Modal.Position = UDim2.new(0.5, 0, 0.5, 0)
         Modal.AnchorPoint = Vector2.new(0.5, 0.5)
-        Modal.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        Modal.BackgroundColor3 = getColor(Theme.Secondary) -- Użycie motywu
         Modal.BorderSizePixel = 0
         Modal.Parent = Overlay
 
         Instance.new("UICorner", Modal).CornerRadius = UDim.new(0, 8)
         local Stroke = Instance.new("UIStroke", Modal)
-        Stroke.Color = Color3.fromRGB(60, 60, 60)
+        Stroke.Color = getColor(Theme.Accent) -- Użycie motywu
         Stroke.Thickness = 1.5
         Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
@@ -377,7 +393,7 @@ function Window:Create(config)
         Question.Text = "Are you sure you want to exit?"
         Question.Font = Enum.Font.GothamBold
         Question.TextSize = 16
-        Question.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Question.TextColor3 = getColor(Theme.Text) -- Użycie motywu
         Question.Size = UDim2.new(1, 0, 0, 80)
         Question.BackgroundTransparency = 1
         Question.Parent = Modal
@@ -387,7 +403,7 @@ function Window:Create(config)
             btn.Text = text
             btn.Font = Enum.Font.GothamMedium
             btn.TextSize = 14
-            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.TextColor3 = getColor(Theme.Text) -- Użycie motywu
             btn.BackgroundColor3 = color
             btn.Size = UDim2.new(0, 100, 0, 35)
             btn.Position = pos
@@ -397,7 +413,7 @@ function Window:Create(config)
         end
 
         local YesBtn = createBtn("Yes", Color3.fromRGB(200, 50, 50), UDim2.new(0.5, -110, 0.7, 0))
-        local NoBtn = createBtn("No", Color3.fromRGB(60, 60, 60), UDim2.new(0.5, 10, 0.7, 0))
+        local NoBtn = createBtn("No", getColor(Theme.Accent), UDim2.new(0.5, 10, 0.7, 0)) -- Użycie motywu
 
         YesBtn.MouseButton1Click:Connect(function()
             ScreenGui:Destroy()
@@ -408,10 +424,6 @@ function Window:Create(config)
         end)
     end
 
-    -- Nadpisujemy domyślne zachowanie CloseBtn w Main.lua, ale tutaj też warto to obsłużyć
-    -- W Main.lua jest: UI.CloseBtn.MouseButton1Click:Connect(function() UI.ScreenGui:Destroy() end)
-    -- Musimy to zmienić w Main.lua, aby korzystało z nowej funkcji, lub podpiąć to tutaj i usunąć z Main.lua.
-    -- Najlepiej: Zwróćmy funkcję ShowExitModal w tabeli UI, aby Main.lua mógł jej użyć.
     UI.ShowExitModal = ShowExitModal
 
     function UI:CreateTab(name, icon, order)
@@ -421,7 +433,7 @@ function Window:Create(config)
         TabButton.Name = name
         TabButton.Size = UDim2.new(1, 0, 0, 45)
         TabButton.BackgroundTransparency = 1
-        TabButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        TabButton.BackgroundColor3 = getColor(Theme.Text) -- Użycie motywu
         TabButton.Text = ""
         TabButton.AutoButtonColor = false
         TabButton.BorderSizePixel = 0
@@ -434,7 +446,7 @@ function Window:Create(config)
         TabIcon.Position = UDim2.new(0, 15, 0.5, 0)
         TabIcon.AnchorPoint = Vector2.new(0, 0.5)
         TabIcon.BackgroundTransparency = 1
-        TabIcon.ImageColor3 = Color3.fromRGB(160, 160, 160)
+        TabIcon.ImageColor3 = getColor(Theme.Text_Secondary) -- Użycie motywu
         TabIcon.Parent = TabButton
         Icons:Apply(TabIcon, icon)
         
@@ -446,7 +458,7 @@ function Window:Create(config)
         TabLabel.Font = Enum.Font.GothamMedium
         TabLabel.Text = name
         TabLabel.TextSize = 14
-        TabLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+        TabLabel.TextColor3 = getColor(Theme.Text_Secondary) -- Użycie motywu
         TabLabel.TextXAlignment = Enum.TextXAlignment.Left
         TabLabel.Parent = TabButton
         
@@ -472,8 +484,8 @@ function Window:Create(config)
             if UI.SelectedTab then
                 local prev = UI.SelectedTab
                 TweenService:Create(prev, TweenInfo.new(0.25), {BackgroundTransparency = 1}):Play()
-                TweenService:Create(prev:FindFirstChild("Icon"), TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(160, 160, 160)}):Play()
-                TweenService:Create(prev:FindFirstChild("Label"), TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(160, 160, 160)}):Play()
+                TweenService:Create(prev:FindFirstChild("Icon"), TweenInfo.new(0.25), {ImageColor3 = getColor(Theme.Text_Secondary)}):Play()
+                TweenService:Create(prev:FindFirstChild("Label"), TweenInfo.new(0.25), {TextColor3 = getColor(Theme.Text_Secondary)}):Play()
             end
             
             for _, p in pairs(UI.Pages) do p.Visible = false end
@@ -481,15 +493,10 @@ function Window:Create(config)
             UI.SelectedTab = TabButton
             
             TweenService:Create(TabButton, TweenInfo.new(0.25), {BackgroundTransparency = 0.93}):Play()
-            TweenService:Create(TabIcon, TweenInfo.new(0.25), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-            TweenService:Create(TabLabel, TweenInfo.new(0.25), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            TweenService:Create(TabIcon, TweenInfo.new(0.25), {ImageColor3 = getColor(Theme.Text)}):Play()
+            TweenService:Create(TabLabel, TweenInfo.new(0.25), {TextColor3 = getColor(Theme.Text)}):Play()
             
-            -- FIX: Animacja linii (obliczamy pozycję względem Sidebaru)
-            -- Ponieważ używamy LayoutOrder, musimy znaleźć faktyczną pozycję przycisku w liście
-            -- UIListLayout automatycznie układa elementy, więc możemy pobrać AbsolutePosition
-            -- Ale AbsolutePosition jest w koordynatach ekranu.
-            -- Prościej: policzmy, który to element w posortowanej liście
-
+            -- FIX: Animacja linii
             local sortedTabs = {}
             for _, t in pairs(TabList:GetChildren()) do
                 if t:IsA("TextButton") then table.insert(sortedTabs, t) end
