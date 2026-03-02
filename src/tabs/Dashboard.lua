@@ -11,19 +11,26 @@ function Dashboard:Render(UI, order)
     local TabElements = UI:CreateTab("Dashboard", "layout-dashboard", order or 1)
     local Page = TabElements.Page
 
+    -- Poprawka: Ustawiamy sortowanie w layoucie strony, aby mieć kontrolę nad kolejnością
+    local PageLayout = Page:FindFirstChildOfClass("UIListLayout")
+    if PageLayout then
+        PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    end
+
     -- 0. Spacer (Odstęp od góry)
-    -- Wymuszamy obniżenie zawartości o 20px
     local Spacer = Instance.new("Frame")
     Spacer.Name = "Spacer"
     Spacer.Size = UDim2.new(1, -40, 0, 20)
     Spacer.BackgroundTransparency = 1
+    Spacer.LayoutOrder = 1 -- Ustawiamy kolejność
     Spacer.Parent = Page
 
     -- 1. Sekcja "Quick Links" (Górna)
     local QuickLinksContainer = Instance.new("Frame")
     QuickLinksContainer.Name = "QuickLinks"
-    QuickLinksContainer.Size = UDim2.new(1, -40, 0, 140) -- Szerokość z marginesem 40px
+    QuickLinksContainer.Size = UDim2.new(1, -40, 0, 140)
     QuickLinksContainer.BackgroundTransparency = 1
+    QuickLinksContainer.LayoutOrder = 2 -- Ustawiamy kolejność
     QuickLinksContainer.Parent = Page
 
     local QuickLinksLayout = Instance.new("UIListLayout")
@@ -32,7 +39,7 @@ function Dashboard:Render(UI, order)
     QuickLinksLayout.Padding = UDim.new(0, 15)
     QuickLinksLayout.Parent = QuickLinksContainer
 
-    local versionLabel -- Zmienna do przechowywania referencji do etykiety wersji
+    local versionLabel
 
     local function createCard(title, subtitle, iconName, btnText, link)
         local Card = Instance.new("Frame")
@@ -78,7 +85,7 @@ function Dashboard:Render(UI, order)
         SubLabel.Parent = Card
 
         if title == "Version" then
-            versionLabel = SubLabel -- Zapisujemy referencję
+            versionLabel = SubLabel
         end
 
         local Btn = Instance.new("TextButton")
@@ -118,9 +125,9 @@ function Dashboard:Render(UI, order)
     -- 2. Sekcja "Latest Updates" (Dolna)
     local UpdatesContainer = Instance.new("Frame")
     UpdatesContainer.Name = "UpdatesContainer"
-    -- Szerokość 100% - 40px marginesu. Wysokość 185px (wypełnia resztę widocznego obszaru)
     UpdatesContainer.Size = UDim2.new(1, -40, 0, 185)
-    UpdatesContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Ciemne tło
+    UpdatesContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    UpdatesContainer.LayoutOrder = 3 -- Ustawiamy kolejność
     UpdatesContainer.Parent = Page
 
     Instance.new("UICorner", UpdatesContainer).CornerRadius = UDim.new(0, 8)
@@ -130,7 +137,6 @@ function Dashboard:Render(UI, order)
     UpdatesStroke.Thickness = 1
     UpdatesStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    -- Wewnętrzny padding dla kontenera aktualizacji
     local UpdatesPadding = Instance.new("UIPadding")
     UpdatesPadding.PaddingTop = UDim.new(0, 15)
     UpdatesPadding.PaddingBottom = UDim.new(0, 15)
@@ -197,9 +203,9 @@ function Dashboard:Render(UI, order)
         LogText.Font = Enum.Font.Gotham
         LogText.TextSize = 14
         LogText.TextColor3 = Color3.fromRGB(200, 200, 200)
-        LogText.Size = UDim2.new(1, -100, 1, 0)
         LogText.Position = UDim2.new(0, 25, 0, 0)
         LogText.TextYAlignment = Enum.TextYAlignment.Center
+        LogText.Size = UDim2.new(1, -100, 1, 0)
         LogText.TextXAlignment = Enum.TextXAlignment.Left
         LogText.BackgroundTransparency = 1
         LogText.TextTruncate = Enum.TextTruncate.AtEnd
