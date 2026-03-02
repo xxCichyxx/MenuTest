@@ -274,7 +274,7 @@ function Window:Create(config)
     Icons:Apply(ResizeIcon, "arrow-down-right")
 
     Interactions:MakeDraggable(TopBar, MainFrame)
-    Interactions:MakeResizable(ResizeHandle, MainFrame, 600, 350)
+    Interactions:MakeResizable(ResizeHandle, MainFrame, 700, 400)
 
     -- // 10. Shadow Update Fix
     Shadow.AnchorPoint = MainFrame.AnchorPoint

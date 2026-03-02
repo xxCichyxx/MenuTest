@@ -20,7 +20,7 @@ function Dashboard:Render(UI, order)
     -- 0. Spacer (Odstęp od góry)
     local Spacer = Instance.new("Frame")
     Spacer.Name = "Spacer"
-    Spacer.Size = UDim2.new(1, -40, 0, 20)
+    Spacer.Size = UDim2.new(1, -40, 0, 1)
     Spacer.BackgroundTransparency = 1
     Spacer.LayoutOrder = 1 -- Ustawiamy kolejność
     Spacer.Parent = Page
@@ -118,9 +118,9 @@ function Dashboard:Render(UI, order)
         return Btn
     end
 
-    createCard("Discord", "Join community", "users", "Join", "https://dsc.gg/xeno-scripts-pl")
-    createCard("Version", "Ładowanie...", "package", "Copy ID")
-    createCard("GitHub", "View source", "github", "Open", "https://github.com/xxCichyxx/MenuTest")
+    createCard("Discord", "Join community", "users", "Copy", "https://dsc.gg/xeno-scripts-pl")
+    createCard("Version", "Ładowanie...", "package", "Copy", "0.0.1")
+    createCard("GitHub", "View source", "github", "Copy", "https://github.com/xxCichyxx/MenuTest")
 
     -- 2. Sekcja "Latest Updates" (Dolna)
     local UpdatesContainer = Instance.new("Frame")
