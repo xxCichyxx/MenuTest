@@ -17,7 +17,7 @@ function Dashboard:Render(UI, order)
 
     local Spacer = Instance.new("Frame")
     Spacer.Name = "Spacer"
-    Spacer.Size = UDim2.new(1, -40, 0, 1)
+    Spacer.Size = UDim2.new(1, -40, 0, 20)
     Spacer.BackgroundTransparency = 1
     Spacer.LayoutOrder = 1
     Spacer.Parent = Page
@@ -108,9 +108,9 @@ function Dashboard:Render(UI, order)
         return Btn
     end
 
-    createCard("Discord", "Join community", "users", "Copy", "https://dsc.gg/xeno-scripts-pl")
-    createCard("Version", "Ładowanie...", "package", "Copy")
-    createCard("GitHub", "View source", "github", "Copy", "https://github.com/xxCichyxx/MenuTest")
+    createCard("Discord", "Join community", "users", "Join", "https://dsc.gg/xeno-scripts-pl")
+    createCard("Version", "Ładowanie...", "package", "Copy ID")
+    createCard("GitHub", "View source", "github", "Open", "https://github.com/xxCichyxx/MenuTest")
 
     local UpdatesContainer = Instance.new("Frame")
     UpdatesContainer.Name = "UpdatesContainer"
@@ -125,6 +125,14 @@ function Dashboard:Render(UI, order)
     UpdatesStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     ThemeManager:Register(UpdatesStroke, "Color", "Accent")
 
+    -- POPRAWKA: Zwiększony padding, aby ikona nie wystawała
+    local UpdatesPadding = Instance.new("UIPadding")
+    UpdatesPadding.PaddingTop = UDim.new(0, 15)
+    UpdatesPadding.PaddingBottom = UDim.new(0, 15)
+    UpdatesPadding.PaddingLeft = UDim.new(0, 20) -- Zwiększono z 15 na 20
+    UpdatesPadding.PaddingRight = UDim.new(0, 20)
+    UpdatesPadding.Parent = UpdatesContainer
+
     local Header = Instance.new("Frame")
     Header.Size = UDim2.new(1, 0, 0, 30)
     Header.BackgroundTransparency = 1
@@ -132,7 +140,7 @@ function Dashboard:Render(UI, order)
 
     local HeaderIcon = Instance.new("ImageLabel")
     HeaderIcon.Size = UDim2.new(0, 20, 0, 20)
-    HeaderIcon.Position = UDim2.new(0, 0, 0.5, 0)
+    HeaderIcon.Position = UDim2.new(0, 0, 0.5, 0) -- Ikona zaczyna się od krawędzi paddingu
     HeaderIcon.AnchorPoint = Vector2.new(0, 0.5)
     HeaderIcon.BackgroundTransparency = 1
     HeaderIcon.Parent = Header
@@ -171,7 +179,7 @@ function Dashboard:Render(UI, order)
 
         local Bullet = Instance.new("ImageLabel")
         Bullet.Size = UDim2.new(0, 14, 0, 14)
-        Bullet.Position = UDim2.new(0, 5, 0.5, 0)
+        Bullet.Position = UDim2.new(0, 0, 0.5, 0) -- Wyrównanie do lewej krawędzi listy
         Bullet.AnchorPoint = Vector2.new(0, 0.5)
         Bullet.BackgroundTransparency = 1
         Bullet.Parent = LogItem

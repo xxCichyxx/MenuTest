@@ -19,6 +19,23 @@ function Settings:Render(UI, order, theme, mainFolder)
         return Color3.fromRGB(unpack(colorTable))
     end
 
+    -- Funkcje Config
+    local configFile = mainFolder .. "/configs/settings.json"
+
+    local function loadConfig()
+        if isfile(configFile) then
+            local success, data = pcall(function() return HttpService:JSONDecode(readfile(configFile)) end)
+            if success and type(data) == "table" then return data end
+        end
+        return { AntiAfk = false } -- Domyślne wartości
+    end
+
+    local function saveConfig(data)
+        writefile(configFile, HttpService:JSONEncode(data))
+    end
+
+    local currentConfig = loadConfig()
+
     local PageLayout = Page:FindFirstChildOfClass("UIListLayout")
     if PageLayout then
         PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -37,7 +54,7 @@ function Settings:Render(UI, order, theme, mainFolder)
     ThemesSection.AutomaticSize = Enum.AutomaticSize.Y
     ThemesSection.BackgroundTransparency = 1
     ThemesSection.LayoutOrder = 1
-    ThemesSection.ZIndex = 10 -- Wyższy ZIndex dla sekcji motywów
+    ThemesSection.ZIndex = 10
     ThemesSection.Parent = Page
 
     local ThemesHeader = Instance.new("TextLabel")
@@ -55,7 +72,7 @@ function Settings:Render(UI, order, theme, mainFolder)
     ThemesContainer.Size = UDim2.new(1, 0, 0, 50)
     ThemesContainer.Position = UDim2.new(0, 0, 0, 25)
     ThemesContainer.Parent = ThemesSection
-    ThemesContainer.ZIndex = 10 -- Wyższy ZIndex dla kontenera
+    ThemesContainer.ZIndex = 10
     ThemeManager:Register(ThemesContainer, "BackgroundColor3", "Secondary")
 
     Instance.new("UICorner", ThemesContainer).CornerRadius = UDim.new(0, 6)
@@ -64,7 +81,6 @@ function Settings:Render(UI, order, theme, mainFolder)
     ThemesStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     ThemeManager:Register(ThemesStroke, "Color", "Accent")
 
-    -- Refresh Button (Po lewej, szeroki na 140px)
     local RefreshBtn = Instance.new("TextButton")
     RefreshBtn.Size = UDim2.new(0, 140, 0, 30)
     RefreshBtn.Position = UDim2.new(0, 10, 0.5, 0)
@@ -87,12 +103,11 @@ function Settings:Render(UI, order, theme, mainFolder)
     ThemeManager:Register(RefreshIcon, "ImageColor3", "Text")
     Icons:Apply(RefreshIcon, "refresh-cw")
 
-    -- Dropdown (Po prawej, reszta miejsca)
     local Dropdown = Instance.new("Frame")
-    Dropdown.Size = UDim2.new(1, -170, 0, 30) -- 140px btn + 20px margin + 10px padding
+    Dropdown.Size = UDim2.new(1, -170, 0, 30)
     Dropdown.Position = UDim2.new(0, 160, 0.5, 0)
     Dropdown.AnchorPoint = Vector2.new(0, 0.5)
-    Dropdown.ZIndex = 20 -- Bardzo wysoki ZIndex
+    Dropdown.ZIndex = 20
     Dropdown.Parent = ThemesContainer
     ThemeManager:Register(Dropdown, "BackgroundColor3", "Main")
     Instance.new("UICorner", Dropdown).CornerRadius = UDim.new(0, 6)
@@ -118,8 +133,6 @@ function Settings:Render(UI, order, theme, mainFolder)
     ThemeManager:Register(DropdownIcon, "ImageColor3", "Text_Secondary")
     Icons:Apply(DropdownIcon, "chevron-down")
 
-    -- Lista rozwijana (musi być poza Dropdownem wizualnie, ale w strukturze wewnątrz)
-    -- Ustawiamy ClipsDescendants = false na rodzicach, aby lista mogła wystawać
     ThemesSection.ClipsDescendants = false
     ThemesContainer.ClipsDescendants = false
     Dropdown.ClipsDescendants = false
@@ -131,7 +144,7 @@ function Settings:Render(UI, order, theme, mainFolder)
     DropdownList.ScrollBarThickness = 2
     DropdownList.BackgroundTransparency = 1
     DropdownList.Visible = false
-    DropdownList.ZIndex = 30 -- Najwyższy ZIndex
+    DropdownList.ZIndex = 30
     DropdownList.Parent = Dropdown
 
     local ListBg = Instance.new("Frame")
@@ -227,7 +240,7 @@ function Settings:Render(UI, order, theme, mainFolder)
     SettingsSection.AutomaticSize = Enum.AutomaticSize.Y
     SettingsSection.BackgroundTransparency = 1
     SettingsSection.LayoutOrder = 2
-    SettingsSection.ZIndex = 1 -- Niższy ZIndex
+    SettingsSection.ZIndex = 1
     SettingsSection.Parent = Page
 
     local SettingsHeader = Instance.new("TextLabel")
@@ -299,17 +312,18 @@ function Settings:Render(UI, order, theme, mainFolder)
     ThemeManager:Register(ToggleCircle, "BackgroundColor3", "Text")
     Instance.new("UICorner", ToggleCircle).CornerRadius = UDim.new(1, 0)
 
-    local antiAfkEnabled = false
     local antiAfkConnection
 
-    ToggleBtn.MouseButton1Click:Connect(function()
-        antiAfkEnabled = not antiAfkEnabled
+    local function SetAntiAfk(state)
+        currentConfig.AntiAfk = state
+        saveConfig(currentConfig)
 
-        if antiAfkEnabled then
+        if state then
             local successColor = Color3.fromRGB(unpack(ThemeManager.CurrentTheme.Success))
             TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = successColor}):Play()
             ToggleCircle:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)
 
+            if antiAfkConnection then antiAfkConnection:Disconnect() end
             antiAfkConnection = Players.LocalPlayer.Idled:Connect(function()
                 VirtualUser:CaptureController()
                 VirtualUser:ClickButton2(Vector2.new())
@@ -324,7 +338,16 @@ function Settings:Render(UI, order, theme, mainFolder)
                 antiAfkConnection = nil
             end
         end
+    end
+
+    ToggleBtn.MouseButton1Click:Connect(function()
+        SetAntiAfk(not currentConfig.AntiAfk)
     end)
+
+    -- Inicjalizacja stanu z configu
+    if currentConfig.AntiAfk then
+        SetAntiAfk(true)
+    end
 end
 
 return Settings
