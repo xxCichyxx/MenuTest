@@ -13,6 +13,19 @@ local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads
 -- // ŁADOWANIE MODUŁÓW
 local WindowModule = loadstring(game:HttpGet(baseUrl .. "Window.lua"))()
 
+-- Funkcja do ładnego formatowania JSON
+function prettyEncode(tbl)
+    local result = "{\n"
+    local entries = {}
+    for k, v in pairs(tbl) do
+        local keyStr = "\t\"" .. tostring(k) .. "\": "
+        local valStr = "[" .. table.concat(v, ", ") .. "]"
+        table.insert(entries, keyStr .. valStr)
+    end
+    result = result .. table.concat(entries, ",\n") .. "\n}"
+    return result
+end
+
 function XHUB:CreateWindow(options)
     local Config = options or {}
     local Name = Config.Name or "X HUB"
@@ -22,7 +35,6 @@ function XHUB:CreateWindow(options)
     -- // 1. SYSTEM PLIKÓW I MOTYWÓW
     local mainFolder = Name
     local themesFolder = mainFolder .. "/themes"
-    local themePath = themesFolder .. "/dark.json"
 
     if not isfolder(mainFolder) then makefolder(mainFolder) end
     if not isfolder(mainFolder .. "/configs") then makefolder(mainFolder .. "/configs") end
@@ -33,55 +45,64 @@ function XHUB:CreateWindow(options)
         writefile(mainFolder .. "/emotes/favorites.json", "{}")
     end
 
+    -- Definicje motywów
+    local darkTheme = {
+        Main = {15, 15, 15},
+        Secondary = {25, 25, 25},
+        Accent = {60, 60, 60},
+        Accent2 = {40, 40, 40},
+        Text = {255, 255, 255},
+        Text_Secondary = {160, 160, 160},
+        Success = {100, 255, 100},
+        Close = {200, 50, 50}
+    }
+    local lightTheme = {
+        Main = {245, 245, 245},
+        Secondary = {230, 230, 230},
+        Accent = {200, 200, 200},
+        Accent2 = {215, 215, 215},
+        Text = {30, 30, 30},
+        Text_Secondary = {100, 100, 100},
+        Success = {40, 180, 40},
+        Close = {200, 50, 50}
+    }
+
+    if not isfile(themesFolder .. "/dark.json") then
+        writefile(themesFolder .. "/dark.json", prettyEncode(darkTheme))
+    end
+    if not isfile(themesFolder .. "/light.json") then
+        writefile(themesFolder .. "/light.json", prettyEncode(lightTheme))
+    end
+
     local themeColors
-    if not isfile(themePath) then
-        local defaultTheme = {
-            Main = {15, 15, 15},
-            Secondary = {25, 25, 25},
-            Accent = {60, 60, 60},
-            Accent2 = {40, 40, 40},
-            Text = {255, 255, 255},
-            Text_Secondary = {160, 160, 160},
-            Success = {100, 255, 100}
-        }
-        writefile(themePath, HttpService:JSONEncode(defaultTheme))
-        themeColors = defaultTheme
+    local success, data = pcall(function() return HttpService:JSONDecode(readfile(themesFolder .. "/dark.json")) end)
+    if success and type(data) == "table" then
+        themeColors = data
     else
-        local success, data = pcall(function() return HttpService:JSONDecode(readfile(themePath)) end)
-        if success and type(data) == "table" then
-            themeColors = data
-        else
-            -- Fallback w razie uszkodzonego pliku JSON
-            themeColors = { Main = {15, 15, 15}, Secondary = {25, 25, 25}, Accent = {60, 60, 60}, Accent2 = {40, 40, 40}, Text = {255, 255, 255}, Text_Secondary = {160, 160, 160}, Success = {100, 255, 100} }
-        end
+        themeColors = darkTheme -- Fallback
     end
 
-    -- 2. Wybór lokalizacji i czyszczenie starych wersji
+    -- 2. Tworzenie Okna
     local ProtectedLocation = nil
-    local success = pcall(function() ProtectedLocation = CoreGui end)
-    if not success then ProtectedLocation = PlayerGui end
-
+    pcall(function() ProtectedLocation = CoreGui end)
+    if not ProtectedLocation then ProtectedLocation = PlayerGui end
     for _, child in pairs(ProtectedLocation:GetChildren()) do
-        if child:IsA("ScreenGui") and (child.Name:sub(1,5) == "XHUB_") then
-            child:Destroy()
-        end
+        if child:IsA("ScreenGui") and (child.Name:sub(1,5) == "XHUB_") then child:Destroy() end
     end
 
-    -- 3. Tworzenie Okna (przekazujemy motyw)
     local UI = WindowModule:Create({
         Name = Name,
         TestMobile = TestMobile,
         Tittle = Config.Tittle or "",
         TittlePos = Config.TittlePos or "Left",
-        Theme = themeColors -- Przekazanie tabeli kolorów
+        Theme = themeColors
     })
     UI.ScreenGui.Parent = ProtectedLocation
 
-    -- 4. LOGIKA OTWIERANIA/ZAMYKANIA
+    -- 3. LOGIKA OTWIERANIA/ZAMYKANIA
     local isVisible = true
     local isTweening = false
     local MainFrame = UI.MainFrame
-    
     local CenterPos = UDim2.new(0.5, 0, 0.5, 0)
     local HiddenPos = UDim2.new(0, -750, 1, 20)
 
@@ -99,43 +120,29 @@ function XHUB:CreateWindow(options)
         end)
     end
 
-    -- 5. OBSŁUGA ZDARZEŃ
+    -- 4. OBSŁUGA ZDARZEŃ
     UserInputService.InputBegan:Connect(function(input, gpe)
-        if not gpe and input.KeyCode == Enum.KeyCode[Keybind] then
-            toggleMenu()
-        end
+        if not gpe and input.KeyCode == Enum.KeyCode[Keybind] then toggleMenu() end
     end)
-
     UI.MinBtn.MouseButton1Click:Connect(toggleMenu)
     UI.CloseBtn.MouseButton1Click:Connect(function()
         if UI.ShowExitModal then UI.ShowExitModal() else UI.ScreenGui:Destroy() end
     end)
-    
     if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
 
-    -- 6. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
+    -- 5. ŁADOWANIE ZAKŁADEK
     local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
-    DashboardModule:Render(UI, 1, themeColors) -- Przekazujemy motyw
+    DashboardModule:Render(UI, 1, themeColors)
 
-    -- 7. PUBLICZNE API
+    local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
+    SettingsModule:Render(UI, 999, themeColors, mainFolder)
+
+    -- 6. PUBLICZNE API
     local WindowAPI = {}
     local userTabCounter = 2
-
     function WindowAPI:CreateTab(name, icon)
-        local TabElements = UI:CreateTab(name, icon or "layers", userTabCounter)
-        userTabCounter = userTabCounter + 1
-
-        local TabAPI = {}
-        function TabAPI:CreateButton(text, callback)
-            -- ... implementacja przycisku (też powinna używać motywu)
-        end
-        return TabAPI
+        -- ...
     end
-
-    -- Ładowanie Settings
-    local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
-    SettingsModule:Render(UI, 999, themeColors, mainFolder) -- Przekazujemy motyw i główny folder
-
     return WindowAPI
 end
 
