@@ -4,9 +4,9 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
 
     local DropdownFrame = Instance.new("Frame")
     DropdownFrame.Name = options.Name or "Dropdown"
-    DropdownFrame.Size = UDim2.new(0.5, -5, 0, 35)
+    DropdownFrame.Size = UDim2.new(1, 0, 0, 35) -- Pełna szerokość
     DropdownFrame.BackgroundTransparency = 1
-    DropdownFrame.ZIndex = 5 -- Wyższy ZIndex, żeby lista była na wierzchu
+    DropdownFrame.ZIndex = 5
     DropdownFrame.Parent = parent
 
     local Main = Instance.new("TextButton")
@@ -40,24 +40,23 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     themeManager:Register(Icon, "ImageColor3", "Text_Secondary")
     Icons:Apply(Icon, "chevron-down")
 
-    -- Lista
-    local List = Instance.new("ScrollingFrame")
+    -- Lista (Wewnątrz DropdownFrame, ale z wysokim ZIndex)
+    -- Uwaga: Wewnątrz modułu (który ma ClipsDescendants=true) lista może być ucięta.
+    -- Aby to naprawić idealnie, lista musiałaby być w ScreenGui.
+    -- Na razie zostawiamy wewnątrz, ale moduł musi się rozszerzyć, jeśli lista jest długa.
+    -- W obecnej implementacji modułu, wysokość jest liczona dynamicznie, więc lista rozepchnie moduł.
+
+    local List = Instance.new("Frame") -- Zmieniono na Frame (kontener)
     List.Size = UDim2.new(1, 0, 0, 0)
     List.Position = UDim2.new(0, 0, 1, 5)
-    List.BackgroundTransparency = 1 -- Tło zrobimy osobnym Frame dla cienia
-    List.BorderSizePixel = 0
-    List.ScrollBarThickness = 2
+    List.BackgroundTransparency = 1
     List.Visible = false
     List.ZIndex = 10
-    List.Parent = DropdownFrame -- Musi być dzieckiem DropdownFrame, ale DropdownFrame musi mieć ClipsDescendants = false
+    List.Parent = DropdownFrame
 
-    -- Tło listy
     local ListBg = Instance.new("Frame")
-    ListBg.Size = UDim2.new(1, 0, 0, 0)
-    ListBg.Position = UDim2.new(0, 0, 1, 5)
-    ListBg.Visible = false
-    ListBg.ZIndex = 9
-    ListBg.Parent = DropdownFrame
+    ListBg.Size = UDim2.new(1, 0, 1, 0)
+    ListBg.Parent = List
     themeManager:Register(ListBg, "BackgroundColor3", "Secondary")
     Instance.new("UICorner", ListBg).CornerRadius = UDim.new(0, 6)
     local ListStroke = Instance.new("UIStroke", ListBg)
@@ -67,17 +66,6 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     local ListLayout = Instance.new("UIListLayout")
     ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     ListLayout.Parent = List
-
-    -- Ważne: Ustawiamy ClipsDescendants na false w rodzicach, jeśli to możliwe,
-    -- ale w UIGridLayout to trudne.
-    -- Alternatywa: Lista jako dziecko ScreenGui (TopLevel), pozycjonowana absolutnie.
-    -- Dla uproszczenia tutaj: Zakładamy, że UIGridLayout nie ucina (zwykle nie ucina, chyba że ScrollingFrame nadrzędny ma ClipsDescendants=true).
-    -- W naszym przypadku Page ma ClipsDescendants=true (domyślnie dla ScrollingFrame).
-    -- Więc Dropdown wewnątrz Page będzie ucięty.
-    -- FIX: Dropdown musi zmieniać Parent na UI.MainFrame (lub ScreenGui) podczas otwierania.
-
-    -- Na razie prosta implementacja wewnątrz (może być ucięta).
-    -- Aby naprawić ucinanie w przyszłości: Przenieś List do ScreenGui i użyj AbsolutePosition.
 
     local Options = options.Options or {}
     local CurrentOption = options.CurrentOption or {Options[1]}
@@ -99,19 +87,16 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     local function Toggle()
         isOpen = not isOpen
         List.Visible = isOpen
-        ListBg.Visible = isOpen
 
         if isOpen then
             Icons:Apply(Icon, "chevron-up")
             local count = #Options
-            local height = math.min(count * 30, 150)
+            local height = count * 30
             List.Size = UDim2.new(1, 0, 0, height)
-            ListBg.Size = UDim2.new(1, 0, 0, height)
-            List.CanvasSize = UDim2.new(0, 0, 0, count * 30)
-            DropdownFrame.ZIndex = 20 -- Przenieś na wierzch
+            DropdownFrame.Size = UDim2.new(1, 0, 0, 35 + height + 5) -- Rozszerz ramkę dropdowna
         else
             Icons:Apply(Icon, "chevron-down")
-            DropdownFrame.ZIndex = 5
+            DropdownFrame.Size = UDim2.new(1, 0, 0, 35) -- Zwiń ramkę
         end
     end
 
@@ -130,28 +115,24 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
             Item.Font = Enum.Font.Gotham
             Item.TextSize = 14
             Item.TextXAlignment = Enum.TextXAlignment.Left
-            Item.TextColor3 = Color3.fromRGB(255, 255, 255) -- Domyślny
             Item.Parent = List
             themeManager:Register(Item, "TextColor3", "Text")
 
-            -- Podświetlenie wybranego
             local isSelected = false
             for _, s in ipairs(CurrentOption) do if s == opt then isSelected = true break end end
             if isSelected then
-                Item.TextColor3 = Color3.fromRGB(100, 255, 100) -- Success color
+                Item.TextColor3 = Color3.fromRGB(100, 255, 100)
             end
 
             Item.MouseButton1Click:Connect(function()
-                if options.MultipleOptions then
-                    -- Logika wielokrotnego wyboru
-                else
+                if not options.MultipleOptions then
                     CurrentOption = {opt}
                     UpdateLabel()
-                    Toggle() -- Zamknij
+                    Toggle()
                     if options.Callback then options.Callback(CurrentOption) end
                     if options.Flag then saveMenuConfig(options.Flag, CurrentOption) end
                 end
-                RefreshList() -- Odśwież kolory
+                RefreshList()
             end)
         end
     end
