@@ -40,6 +40,7 @@ function Sidebar:Create(UI, theme, config)
     TabList.ScrollBarThickness = 2 -- Cienki pasek przewijania
     TabList.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80) -- Kolor paska (można podpiąć pod motyw)
     TabList.Parent = SidebarFrame
+    TabList.ClipsDescendants = true
     UI.TabList = TabList
 
     local TabListLayout = Instance.new("UIListLayout")

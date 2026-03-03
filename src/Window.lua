@@ -133,14 +133,16 @@ function Window:Create(config)
     UI.TabList = TabList
 
     -- // GLOBAL INDICATOR (Wewnątrz SidebarFrame)
+    -- // GLOBAL INDICATOR (Teraz jako dziecko TabList!)
     local GlobalIndicator = Instance.new("Frame")
     GlobalIndicator.Name = "GlobalIndicator"
     GlobalIndicator.Size = UDim2.new(0, 2, 0, 45)
-    GlobalIndicator.Position = UDim2.new(0, 0, 0, 46) -- Pozycja startowa
+    GlobalIndicator.Position = UDim2.new(0, 0, 0, 0) -- Start na samej górze
+    GlobalIndicator.AnchorPoint = Vector2.new(0, 0)
     GlobalIndicator.BorderSizePixel = 0
     GlobalIndicator.ZIndex = 20
     GlobalIndicator.Visible = false
-    GlobalIndicator.Parent = SidebarFrame -- Dziecko SidebarFrame
+    GlobalIndicator.Parent = TabList -- PRZENIESIONE: Teraz wewnątrz ScrollingFrame
     UI.GlobalIndicator = GlobalIndicator
     ThemeManager:Register(GlobalIndicator, "BackgroundColor3", "Text")
 
@@ -418,6 +420,7 @@ function Window:Create(config)
 
             UI.GlobalIndicator.Visible = true
 
+            -- Resetowanie kolorów poprzedniej zakładki
             if UI.SelectedTab then
                 local prevIcon = UI.SelectedTab:FindFirstChild("Icon")
                 local prevLabel = UI.SelectedTab:FindFirstChild("Label")
@@ -425,18 +428,22 @@ function Window:Create(config)
                 if prevLabel then TweenService:Create(prevLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
             end
 
+            -- Aktywacja nowej strony
             for _, p in pairs(UI.Pages) do p.Visible = false end
             Page.Visible = true
             UI.SelectedTab = TabButton
 
+            -- Efekt wizualny aktywnego przycisku
             TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
             TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
 
-            -- // ZMIANA: Obliczanie pozycji Indicatora względem SidebarFrame
-            local relativeY = TabButton.AbsolutePosition.Y - SidebarFrame.AbsolutePosition.Y
+            -- // MATEMATYKA INDEKSOWA (Niezawodna przy skrolowaniu)
+            -- Ponieważ wskaźnik jest dzieckiem TabList, liczymy pozycję od 0 (góry listy)
+            -- targetY = (Kolejność - 1) * WysokośćPrzycisku
+            local targetY = (TabButton.LayoutOrder - 1) * 45
 
             TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                Position = UDim2.new(0, 0, 0, relativeY)
+                Position = UDim2.new(0, 0, 0, targetY)
             }):Play()
         end
 
