@@ -132,17 +132,19 @@ function Window:Create(config)
     SidebarFrame.Parent = MainFrame
     UI.TabList = TabList
 
-    -- // GLOBAL INDICATOR (Wewnątrz SidebarFrame)
-    -- // GLOBAL INDICATOR (Teraz jako dziecko TabList!)
+    local IndicatorHolder = Instance.new("Folder")
+    IndicatorHolder.Name = "IndicatorHolder"
+    IndicatorHolder.Parent = TabList
+
     local GlobalIndicator = Instance.new("Frame")
     GlobalIndicator.Name = "GlobalIndicator"
     GlobalIndicator.Size = UDim2.new(0, 2, 0, 45)
-    GlobalIndicator.Position = UDim2.new(0, 0, 0, 0) -- Start na samej górze
+    GlobalIndicator.Position = UDim2.new(0, 0, 0, 0)
     GlobalIndicator.AnchorPoint = Vector2.new(0, 0)
     GlobalIndicator.BorderSizePixel = 0
-    GlobalIndicator.ZIndex = 20
+    GlobalIndicator.ZIndex = 20 -- Wysoki ZIndex, by był nad przyciskami
     GlobalIndicator.Visible = false
-    GlobalIndicator.Parent = TabList -- PRZENIESIONE: Teraz wewnątrz ScrollingFrame
+    GlobalIndicator.Parent = IndicatorHolder -- Rodzicem jest folder, więc layout go nie widzi
     UI.GlobalIndicator = GlobalIndicator
     ThemeManager:Register(GlobalIndicator, "BackgroundColor3", "Text")
 
