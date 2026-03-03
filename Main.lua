@@ -151,7 +151,7 @@ function MenuLib:CreateWindow(options)
     end)
     if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
 
-    -- // 5. PUBLICZNE API (DEFINICJA PRZED UŻYCIEM W MODUŁACH)
+    -- // 5. PUBLICZNE API
     local WindowAPI = {}
     local userTabCounter = 2
 
@@ -163,11 +163,10 @@ function MenuLib:CreateWindow(options)
     local InputElement = loadstring(game:HttpGet(baseUrl .. "elements/Input.lua"))()
     local DropdownElement = loadstring(game:HttpGet(baseUrl .. "elements/Dropdown.lua"))()
 
-    function WindowAPI:CreateTab(name, icon, order) -- Dodano parametr order
+    function WindowAPI:CreateTab(name, icon, order)
         local TabElements = UI:CreateTab(name, icon or "layers", order or userTabCounter)
         if not order then userTabCounter = userTabCounter + 1 end
 
-        -- Ustawienie UIGridLayout dla elementów
         local GridLayout = Instance.new("UIGridLayout")
         GridLayout.CellSize = UDim2.new(0.5, -5, 0, 35)
         GridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
@@ -175,6 +174,7 @@ function MenuLib:CreateWindow(options)
         GridLayout.Parent = TabElements.Page
 
         local TabAPI = {}
+        TabAPI.Page = TabElements.Page -- NAPRAWA: Udostępniamy Page w API
 
         function TabAPI:CreateButton(options)
             return ButtonElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
@@ -203,15 +203,14 @@ function MenuLib:CreateWindow(options)
         return TabAPI
     end
 
-    -- Przypisanie API do UI, aby moduły mogły z niego korzystać
     UI.WindowAPI = WindowAPI
 
-    -- // 6. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH (TERAZ, GDY API JEST GOTOWE)
+    -- // 6. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
     local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
-    DashboardModule:Render(UI, 1) -- Dashboard używa wewnętrznego UI, to OK
+    DashboardModule:Render(UI, 1)
 
     local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
-    SettingsModule:Render(UI, 999, themeColors, mainFolder) -- Settings używa UI.WindowAPI
+    SettingsModule:Render(UI, 999, themeColors, mainFolder)
 
     return WindowAPI
 end
