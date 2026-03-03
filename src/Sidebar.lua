@@ -31,7 +31,7 @@ function Sidebar:Create(UI, theme, config)
     -- // LISTA ZAKŁADEK (SCROLLING FRAME)
     local TabList = Instance.new("ScrollingFrame")
     TabList.Name = "TabList"
-    TabList.Size = UDim2.new(1, 0, 0.5, -46) -- Zmniejszona wysokość na profil
+    TabList.Size = UDim2.new(1, 0, 1, -106) -- 46px góra + 60px dół
     TabList.Position = UDim2.new(0, 0, 0, 46)
     TabList.BackgroundTransparency = 1
     TabList.BorderSizePixel = 0
@@ -48,34 +48,49 @@ function Sidebar:Create(UI, theme, config)
     -- // DOLNA CZĘŚĆ (Profil)
     local ProfileFrame = Instance.new("Frame")
     ProfileFrame.Name = "ProfileFrame"
-    ProfileFrame.Size = UDim2.new(1, 0, 0.5, 0)
+    ProfileFrame.Size = UDim2.new(1, 0, 0, 60) -- Stała wysokość
     ProfileFrame.Position = UDim2.new(0, 0, 1, 0)
     ProfileFrame.AnchorPoint = Vector2.new(0, 1) -- Przypięty do dołu
     ProfileFrame.BackgroundTransparency = 1
     ProfileFrame.Parent = SidebarFrame
 
+    local ProfileLine = Instance.new("Frame")
+    ProfileLine.Size = UDim2.new(1, 0, 0, 1)
+    ProfileLine.Position = UDim2.new(0, 0, 0, 0)
+    ProfileLine.BorderSizePixel = 0
+    ProfileLine.ZIndex = 10
+    ProfileLine.Parent = ProfileFrame
+    UI.ThemeManager:Register(ProfileLine, "BackgroundColor3", "Accent")
+
+    -- Kontener na awatar (dla maski)
+    local AvatarContainer = Instance.new("Frame")
+    AvatarContainer.Size = UDim2.new(0, 40, 0, 40)
+    AvatarContainer.Position = UDim2.new(0, 15, 0.5, 0)
+    AvatarContainer.AnchorPoint = Vector2.new(0, 0.5)
+    AvatarContainer.BackgroundTransparency = 1
+    AvatarContainer.Parent = ProfileFrame
+
     local Avatar = Instance.new("ImageLabel")
     Avatar.Name = "Avatar"
-    Avatar.Size = UDim2.new(0, 60, 0, 60)
-    Avatar.Position = UDim2.new(0.5, 0, 0, 10)
-    Avatar.AnchorPoint = Vector2.new(0.5, 0)
+    Avatar.Size = UDim2.new(1, 0, 1, 0)
     Avatar.BackgroundTransparency = 1
     Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. game.Players.LocalPlayer.UserId .. "&w=150&h=150"
-    Avatar.Parent = ProfileFrame
+    Avatar.Parent = AvatarContainer
 
-    -- Maska okrągła (wymaga ImageLabel z ImageRectOffset i ImageRectSize)
-    -- Alternatywnie można użyć pluginu do tworzenia masek
+    -- Zaokrąglenie awatara
+    local AvatarCorner = Instance.new("UICorner")
+    AvatarCorner.CornerRadius = UDim.new(1, 0) -- Pełne koło
+    AvatarCorner.Parent = Avatar
 
     local DisplayName = Instance.new("TextLabel")
     DisplayName.Name = "DisplayName"
     DisplayName.Text = game.Players.LocalPlayer.DisplayName
-    DisplayName.Font = Enum.Font.GothamMedium
+    DisplayName.Font = Enum.Font.GothamBold
     DisplayName.TextSize = 14
-    DisplayName.TextColor3 = Color3.fromRGB(255, 255, 255)
-    DisplayName.Size = UDim2.new(1, 0, 0, 20)
-    DisplayName.Position = UDim2.new(0, 0, 0, 75)
+    DisplayName.Size = UDim2.new(1, -70, 1, 0) -- Reszta szerokości
+    DisplayName.Position = UDim2.new(0, 65, 0, 0) -- Odsunięcie od awatara
     DisplayName.BackgroundTransparency = 1
-    DisplayName.TextXAlignment = Enum.TextXAlignment.Center
+    DisplayName.TextXAlignment = Enum.TextXAlignment.Left
     DisplayName.Parent = ProfileFrame
     UI.ThemeManager:Register(DisplayName, "TextColor3", "Text")
 

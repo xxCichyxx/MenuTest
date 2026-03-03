@@ -11,8 +11,10 @@ local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads
 local Icons = loadstring(game:HttpGet(baseUrl .. "Icons.lua"))()
 
 function Settings:Render(UI, order, theme, mainFolder)
-    local TabElements = UI:CreateTab("Settings", "settings", order or 999)
-    local Page = TabElements.Page
+    -- // ZMIANA: Tworzymy zakładkę i od razu pobieramy jej API
+    local TabAPI = UI.WindowAPI:CreateTab("Settings", "settings", order or 999)
+    local Page = TabAPI.Page -- Pobieramy stronę z wewnętrznego API
+
     local ThemeManager = UI.ThemeManager
 
     local function getColor(colorTable)
@@ -250,10 +252,12 @@ function Settings:Render(UI, order, theme, mainFolder)
     SettingsStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     ThemeManager:Register(SettingsStroke, "Color", "Accent")
 
-    local SettingsListLayout = Instance.new("UIListLayout")
-    SettingsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    SettingsListLayout.Padding = UDim.new(0, 5)
-    SettingsListLayout.Parent = SettingsContainer
+    -- // ZMIANA: Używamy UIGridLayout dla opcji
+    local SettingsGridLayout = Instance.new("UIGridLayout")
+    SettingsGridLayout.CellSize = UDim2.new(0.5, -5, 0, 35)
+    SettingsGridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+    SettingsGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    SettingsGridLayout.Parent = SettingsContainer
 
     local SettingsPadding = Instance.new("UIPadding")
     SettingsPadding.PaddingTop = UDim.new(0, 10)
@@ -264,8 +268,7 @@ function Settings:Render(UI, order, theme, mainFolder)
 
     -- Anti-AFK Toggle
     local antiAfkConnection
-    local Tab = UI:CreateTab("Settings", "settings")
-    Tab:CreateToggle({
+    TabAPI:CreateToggle({
         Name = "Anti-AFK",
         CurrentValue = false,
         Flag = "AntiAfk",

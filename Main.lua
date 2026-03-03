@@ -23,12 +23,10 @@ function MenuLib:GenerateID(length)
     return result
 end
 
--- Funkcja do ładnego formatowania JSON (Pretty Print)
 function prettyEncode(tbl)
     local result = "{\n"
     local entries = {}
     local order = {"Main", "Secondary", "Accent", "Accent2", "Success", "Text", "Text_Secondary", "Close"}
-
     for _, k in ipairs(order) do
         if tbl[k] then
             local v = tbl[k]
@@ -54,7 +52,6 @@ function MenuLib:CreateWindow(options)
     local Config = options or {}
     local Name = Config.Name or "Menu"
 
-    -- // 1. SYSTEM IDENTYFIKACJI I USUWANIA STAREGO MENU
     local menuId = "MenuInstance"
     local ProtectedLocation = nil
     pcall(function() ProtectedLocation = CoreGui end)
@@ -66,7 +63,6 @@ function MenuLib:CreateWindow(options)
         end
     end
 
-    -- // 2. SYSTEM PLIKÓW I MOTYWÓW
     local mainFolder = Name
     local themesFolder = mainFolder .. "/themes"
     local configsFolder = mainFolder .. "/configs"
@@ -80,7 +76,6 @@ function MenuLib:CreateWindow(options)
         writefile(mainFolder .. "/emotes/favorites.json", "{}")
     end
 
-    -- Definicja motywu DARK (Zgodnie z Twoim wzorem)
     local darkTheme = {
         Main = {15, 15, 15},
         Secondary = {25, 25, 25},
@@ -97,7 +92,6 @@ function MenuLib:CreateWindow(options)
     local success, data = pcall(function() return HttpService:JSONDecode(readfile(themesFolder .. "/dark.json")) end)
     if success and type(data) == "table" then themeColors = data end
 
-    -- // CONFIG MANAGER
     local menuConfig = {}
     local configFilePath = configsFolder .. "/settings.json"
 
@@ -114,7 +108,7 @@ function MenuLib:CreateWindow(options)
         writefile(configFilePath, HttpService:JSONEncode(menuConfig))
     end
 
-    -- // 3. TWORZENIE OKNA
+    -- 3. TWORZENIE OKNA
     local UI = WindowModule:Create({
         Name = Name,
         Tittle = Config.Tittle or "",
@@ -127,7 +121,7 @@ function MenuLib:CreateWindow(options)
     })
     UI.ScreenGui.Parent = ProtectedLocation
 
-    -- // 4. LOGIKA UI
+    -- 4. LOGIKA UI
     local isVisible = true
     local isTweening = false
     local MainFrame = UI.MainFrame
@@ -157,14 +151,7 @@ function MenuLib:CreateWindow(options)
     end)
     if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
 
-    -- // 5. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
-    local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
-    DashboardModule:Render(UI)
-
-    local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
-    SettingsModule:Render(UI, 999, themeColors, mainFolder)
-
-    -- // 6. PUBLICZNE API
+    -- // 5. PUBLICZNE API (DEFINICJA PRZED UŻYCIEM W MODUŁACH)
     local WindowAPI = {}
     local userTabCounter = 2
 
@@ -176,13 +163,13 @@ function MenuLib:CreateWindow(options)
     local InputElement = loadstring(game:HttpGet(baseUrl .. "elements/Input.lua"))()
     local DropdownElement = loadstring(game:HttpGet(baseUrl .. "elements/Dropdown.lua"))()
 
-    function WindowAPI:CreateTab(name, icon)
-        local TabElements = UI:CreateTab(name, icon or "layers", userTabCounter)
-        userTabCounter = userTabCounter + 1
+    function WindowAPI:CreateTab(name, icon, order) -- Dodano parametr order
+        local TabElements = UI:CreateTab(name, icon or "layers", order or userTabCounter)
+        if not order then userTabCounter = userTabCounter + 1 end
 
         -- Ustawienie UIGridLayout dla elementów
         local GridLayout = Instance.new("UIGridLayout")
-        GridLayout.CellSize = UDim2.new(0.5, -5, 0, 35) -- Domyślnie 2 w rzędzie
+        GridLayout.CellSize = UDim2.new(0.5, -5, 0, 35)
         GridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
         GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
         GridLayout.Parent = TabElements.Page
@@ -215,6 +202,16 @@ function MenuLib:CreateWindow(options)
 
         return TabAPI
     end
+
+    -- Przypisanie API do UI, aby moduły mogły z niego korzystać
+    UI.WindowAPI = WindowAPI
+
+    -- // 6. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH (TERAZ, GDY API JEST GOTOWE)
+    local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
+    DashboardModule:Render(UI, 1) -- Dashboard używa wewnętrznego UI, to OK
+
+    local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
+    SettingsModule:Render(UI, 999, themeColors, mainFolder) -- Settings używa UI.WindowAPI
 
     return WindowAPI
 end
