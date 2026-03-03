@@ -5,8 +5,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
 -- // KONFIGURACJA ŚCIEŻEK
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
@@ -18,7 +17,7 @@ local WindowModule = loadstring(game:HttpGet(baseUrl .. "Window.lua"))()
 function MenuLib:GenerateID(length)
     local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     local result = ""
-    for i = 1, length or 16 do
+    for i = 1, length or 12 do
         result = result .. string.sub(chars, math.random(1, #chars), math.random(1, #chars))
     end
     return result
@@ -53,31 +52,17 @@ function MenuLib:CreateWindow(options)
     local Config = options or {}
     local Name = Config.Name or "Menu"
 
-    -- // 1. ZABEZPIECZENIE KONTENERA (gethui support)
-    local TargetContainer = nil
-    pcall(function()
-        TargetContainer = (gethui and gethui()) or CoreGui
-    end)
-    if not TargetContainer then
-        TargetContainer = PlayerGui
-    end
+    local menuId = "MenuInstance"
+    local ProtectedLocation = nil
+    pcall(function() ProtectedLocation = CoreGui end)
+    if not ProtectedLocation then ProtectedLocation = PlayerGui end
 
-    if not TargetContainer then
-        warn("CRITICAL: Nie znaleziono kontenera dla UI!")
-        return
-    end
-
-    -- // 2. SYSTEM IDENTYFIKACJI I USUWANIA STAREGO MENU
-    local menuAttribute = "MenuInstance_Hash" -- Stały klucz atrybutu
-
-    -- Szukamy starego menu po atrybucie
-    for _, child in pairs(TargetContainer:GetChildren()) do
-        if child:IsA("ScreenGui") and child:GetAttribute(menuAttribute) then
+    for _, child in pairs(ProtectedLocation:GetChildren()) do
+        if child:IsA("ScreenGui") and child:GetAttribute(menuId) then
             child:Destroy()
         end
     end
 
-    -- // 3. SYSTEM PLIKÓW
     local mainFolder = Name
     local themesFolder = mainFolder .. "/themes"
     local configsFolder = mainFolder .. "/configs"
@@ -123,21 +108,20 @@ function MenuLib:CreateWindow(options)
         writefile(configFilePath, HttpService:JSONEncode(menuConfig))
     end
 
-    -- // 4. TWORZENIE OKNA
+    -- 3. TWORZENIE OKNA
     local UI = WindowModule:Create({
         Name = Name,
         Tittle = Config.Tittle or "",
         TittlePos = Config.TittlePos or "Left",
         Theme = themeColors,
-        MenuId = menuAttribute, -- Przekazujemy nazwę atrybutu
+        MenuId = menuId,
         GenerateID = MenuLib.GenerateID,
         MenuConfig = menuConfig,
         SaveMenuConfig = saveMenuConfig
     })
+    UI.ScreenGui.Parent = ProtectedLocation
 
-    UI.ScreenGui.Parent = TargetContainer -- Przypisujemy do bezpiecznego kontenera
-
-    -- // 5. LOGIKA UI
+    -- 4. LOGIKA UI
     local isVisible = true
     local isTweening = false
     local MainFrame = UI.MainFrame
@@ -167,7 +151,7 @@ function MenuLib:CreateWindow(options)
     end)
     if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
 
-    -- // 6. PUBLICZNE API
+    -- // 5. PUBLICZNE API
     local WindowAPI = {}
     local userTabCounter = 2
 
@@ -178,16 +162,11 @@ function MenuLib:CreateWindow(options)
     local SliderElement = loadstring(game:HttpGet(baseUrl .. "elements/Slider.lua"))()
     local InputElement = loadstring(game:HttpGet(baseUrl .. "elements/Input.lua"))()
     local DropdownElement = loadstring(game:HttpGet(baseUrl .. "elements/Dropdown.lua"))()
+    local ModuleElement = loadstring(game:HttpGet(baseUrl .. "elements/Module.lua"))() -- DODANO
 
     function WindowAPI:CreateTab(name, icon, order)
         local TabElements = UI:CreateTab(name, icon or "layers", order or userTabCounter)
         if not order then userTabCounter = userTabCounter + 1 end
-
-        -- Zabezpieczenie przed brakiem strony
-        if not TabElements or not TabElements.Page then
-            warn("Błąd: CreateTab nie zwrócił strony dla " .. tostring(name))
-            return {}
-        end
 
         local GridLayout = Instance.new("UIGridLayout")
         GridLayout.CellSize = UDim2.new(0.5, -5, 0, 35)
@@ -196,7 +175,7 @@ function MenuLib:CreateWindow(options)
         GridLayout.Parent = TabElements.Page
 
         local TabAPI = {}
-        TabAPI.Page = TabElements.Page -- Przekazujemy Page dalej
+        TabAPI.Page = TabElements.Page
 
         function TabAPI:CreateButton(options)
             return ButtonElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
@@ -222,14 +201,17 @@ function MenuLib:CreateWindow(options)
             return DropdownElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
         end
 
+        function TabAPI:CreateModule(options) -- DODANO
+            return ModuleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+        end
+
         return TabAPI
     end
 
     UI.WindowAPI = WindowAPI
 
-    -- // 7. SYNCHRONIZACJA I RENDEROWANIE
-    task.wait(0.1) -- Czekamy na pełne załadowanie UI
-
+    -- // 6. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
+    task.wait(0.1)
     local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
     DashboardModule:Render(UI, 1)
 
