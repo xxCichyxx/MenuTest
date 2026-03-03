@@ -11,8 +11,11 @@ local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads
 local Icons = loadstring(game:HttpGet(baseUrl .. "Icons.lua"))()
 
 function Settings:Render(UI, order, theme, mainFolder)
-    local TabElements = UI:CreateTab("Settings", "settings", order or 999)
-    local Page = TabElements.Page
+    -- // ZMIANA: Używamy UI.WindowAPI:CreateTab zamiast UI:CreateTab
+    -- UI.WindowAPI to publiczne API zdefiniowane w Main.lua, które posiada metody CreateToggle itp.
+    local TabAPI = UI.WindowAPI:CreateTab("Settings", "settings", order or 999)
+    local Page = TabAPI.Page -- Pobieramy stronę z obiektu API
+
     local ThemeManager = UI.ThemeManager
 
     local function getColor(colorTable)
@@ -36,7 +39,7 @@ function Settings:Render(UI, order, theme, mainFolder)
     ThemesSection.Size = UDim2.new(1, -40, 0, 0)
     ThemesSection.AutomaticSize = Enum.AutomaticSize.Y
     ThemesSection.BackgroundTransparency = 1
-    ThemesSection.LayoutOrder = 1 -- PIERWSZA
+    ThemesSection.LayoutOrder = 1
     ThemesSection.ZIndex = 10
     ThemesSection.Parent = Page
 
@@ -222,7 +225,7 @@ function Settings:Render(UI, order, theme, mainFolder)
     SettingsSection.Size = UDim2.new(1, -40, 0, 0)
     SettingsSection.AutomaticSize = Enum.AutomaticSize.Y
     SettingsSection.BackgroundTransparency = 1
-    SettingsSection.LayoutOrder = 2 -- DRUGA
+    SettingsSection.LayoutOrder = 2
     SettingsSection.ZIndex = 1
     SettingsSection.Parent = Page
 
@@ -250,10 +253,12 @@ function Settings:Render(UI, order, theme, mainFolder)
     SettingsStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     ThemeManager:Register(SettingsStroke, "Color", "Accent")
 
-    local SettingsListLayout = Instance.new("UIListLayout")
-    SettingsListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    SettingsListLayout.Padding = UDim.new(0, 5)
-    SettingsListLayout.Parent = SettingsContainer
+    -- // ZMIANA: Używamy UIGridLayout dla opcji
+    local SettingsGridLayout = Instance.new("UIGridLayout")
+    SettingsGridLayout.CellSize = UDim2.new(0.5, -5, 0, 35)
+    SettingsGridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+    SettingsGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    SettingsGridLayout.Parent = SettingsContainer
 
     local SettingsPadding = Instance.new("UIPadding")
     SettingsPadding.PaddingTop = UDim.new(0, 10)
@@ -264,7 +269,9 @@ function Settings:Render(UI, order, theme, mainFolder)
 
     -- Anti-AFK Toggle
     local antiAfkConnection
-    TabElements:CreateToggle({ -- Używamy TabElements (zwróconego przez CreateTab)
+
+    -- // ZMIANA: Wywołujemy CreateToggle na obiekcie TabAPI (zwróconym przez UI.WindowAPI:CreateTab)
+    TabAPI:CreateToggle({
         Name = "Anti-AFK",
         CurrentValue = false,
         Flag = "AntiAfk",
