@@ -417,37 +417,67 @@ function Window:Create(config)
         PagePadding.PaddingTop = UDim.new(0, 20)
         PagePadding.PaddingRight = UDim.new(0, 20)
 
-        local function Select()
-            if UI.SelectedTab == TabButton then return end
+local function Select()
+    if UI.SelectedTab == TabButton then return end
 
-            UI.GlobalIndicator.Visible = true
+    UI.GlobalIndicator.Visible = true
 
-            -- Resetowanie kolorów poprzedniej zakładki
-            if UI.SelectedTab then
-                local prevIcon = UI.SelectedTab:FindFirstChild("Icon")
-                local prevLabel = UI.SelectedTab:FindFirstChild("Label")
-                if prevIcon then TweenService:Create(prevIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
-                if prevLabel then TweenService:Create(prevLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
-            end
+    -- Resetowanie kolorów poprzedniej zakładki
+    if UI.SelectedTab then
+        local prevIcon = UI.SelectedTab:FindFirstChild("Icon")
+        local prevLabel = UI.SelectedTab:FindFirstChild("Label")
 
-            -- Aktywacja nowej strony
-            for _, p in pairs(UI.Pages) do p.Visible = false end
-            Page.Visible = true
-            UI.SelectedTab = TabButton
-
-            -- Efekt wizualny aktywnego przycisku
-            TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
-            TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
-
-            -- // MATEMATYKA INDEKSOWA (Niezawodna przy skrolowaniu)
-            -- Ponieważ wskaźnik jest dzieckiem TabList, liczymy pozycję od 0 (góry listy)
-            -- targetY = (Kolejność - 1) * WysokośćPrzycisku
-            local targetY = (TabButton.LayoutOrder - 1) * 45
-
-            TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                Position = UDim2.new(0, 0, 0, targetY)
-            }):Play()
+        if prevIcon then
+            TweenService:Create(prevIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play()
         end
+
+        if prevLabel then
+            TweenService:Create(prevLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play()
+        end
+    end
+
+    -- Aktywacja nowej strony
+    for _, p in pairs(UI.Pages) do
+        p.Visible = false
+    end
+
+    Page.Visible = true
+    UI.SelectedTab = TabButton
+
+    -- Efekt wizualny aktywnego przycisku
+    TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
+    TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
+
+    -- // NOWA LOGIKA OBLICZANIA POZYCJI (Wizualna kolejność)
+    local allTabs = {}
+    for _, child in pairs(TabList:GetChildren()) do
+        -- Sprawdzamy czy to przycisk zakładki (Twoje zakładki to TextButtons)
+        if child:IsA("TextButton") then
+            table.insert(allTabs, child)
+        end
+    end
+
+    -- Sortujemy tabelę tak samo, jak robi to UIListLayout
+    table.sort(allTabs, function(a, b)
+        return a.LayoutOrder < b.LayoutOrder
+    end)
+
+    -- Szukamy pozycji wizualnej
+    local visualIndex = 0
+    for i, tab in ipairs(allTabs) do
+        if tab == TabButton then
+            visualIndex = i - 1
+            break
+        end
+    end
+
+    -- Obliczamy targetY na podstawie miejsca w kolejce (zawsze co 45px)
+    local targetY = visualIndex * 45
+
+    TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 0, 0, targetY)
+    }):Play()
+end
 
         TabButton.MouseButton1Click:Connect(Select)
         table.insert(UI.Tabs, TabButton)
