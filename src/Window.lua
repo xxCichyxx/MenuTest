@@ -132,12 +132,12 @@ function Window:Create(config)
     SidebarFrame.Parent = MainFrame
     UI.TabList = TabList
 
-    -- // GLOBAL INDICATOR (Wewnątrz TabList dla scrollowania)
+    -- // GLOBAL INDICATOR (Wewnątrz TabList)
     local GlobalIndicator = Instance.new("Frame")
     GlobalIndicator.Name = "GlobalIndicator"
-    GlobalIndicator.Size = UDim2.new(0, 2, 0, 45)
+    GlobalIndicator.Size = UDim2.new(0, 2, 0, 45) -- Wysokość przycisku
     GlobalIndicator.Position = UDim2.new(0, 0, 0, 0)
-    GlobalIndicator.AnchorPoint = Vector2.new(0, 0.5) -- Kotwiczenie w pionie
+    GlobalIndicator.AnchorPoint = Vector2.new(0, 0) -- Lewy górny róg
     GlobalIndicator.BorderSizePixel = 0
     GlobalIndicator.ZIndex = 20
     GlobalIndicator.Visible = false
@@ -433,9 +433,24 @@ function Window:Create(config)
             TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
             TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
 
-            -- // ZMIANA: Obliczanie pozycji Indicatora metodą hybrydową
-            local relativeY = TabButton.AbsolutePosition.Y - TabList.AbsolutePosition.Y + TabList.CanvasPosition.Y
-            local targetY = relativeY + (TabButton.AbsoluteSize.Y / 2)
+            -- // ZMIANA: Stała matematyka dla pozycji wskaźnika
+            local sortedTabs = {}
+            for _, t in pairs(TabList:GetChildren()) do
+                if t:IsA("TextButton") then table.insert(sortedTabs, t) end
+            end
+            table.sort(sortedTabs, function(a, b) return a.LayoutOrder < b.LayoutOrder end)
+
+            local index = 1
+            for i, t in ipairs(sortedTabs) do
+                if t == TabButton then index = i break end
+            end
+
+            -- Pobieramy padding z layoutu (domyślnie 0, ale dla pewności)
+            local layout = TabList:FindFirstChildOfClass("UIListLayout")
+            local padding = layout and layout.Padding.Offset or 0
+
+            -- Wzór: (index - 1) * (wysokość + padding)
+            local targetY = (index - 1) * (45 + padding)
 
             TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
                 Position = UDim2.new(0, 0, 0, targetY)

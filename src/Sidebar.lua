@@ -35,10 +35,11 @@ function Sidebar:Create(UI, theme, config)
     TabList.Position = UDim2.new(0, 0, 0, 46)
     TabList.BackgroundTransparency = 1
     TabList.BorderSizePixel = 0
-    TabList.CanvasSize = UDim2.new(0, 0, 0, 0) -- Startowe 0
-    TabList.AutomaticCanvasSize = Enum.AutomaticSize.Y -- AUTOMATYCZNE SKALOWANIE
-    TabList.ScrollBarThickness = 2 -- Cienki pasek przewijania
-    TabList.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80) -- Kolor paska (można podpiąć pod motyw)
+    TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    TabList.ScrollBarThickness = 2
+    TabList.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
+    TabList.ClipsDescendants = false -- POPRAWKA: Aby wskaźnik był widoczny
     TabList.Parent = SidebarFrame
     UI.TabList = TabList
 

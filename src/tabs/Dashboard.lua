@@ -17,7 +17,7 @@ function Dashboard:Render(UI, order)
 
     local QuickLinksContainer = Instance.new("Frame")
     QuickLinksContainer.Name = "QuickLinks"
-    QuickLinksContainer.Size = UDim2.new(1, -40, 0, 140)
+    QuickLinksContainer.Size = UDim2.new(1, -5, 0, 140)
     QuickLinksContainer.BackgroundTransparency = 1
     QuickLinksContainer.LayoutOrder = 2
     QuickLinksContainer.Parent = Page
@@ -107,7 +107,7 @@ function Dashboard:Render(UI, order)
 
     local UpdatesContainer = Instance.new("Frame")
     UpdatesContainer.Name = "UpdatesContainer"
-    UpdatesContainer.Size = UDim2.new(1, -40, 0, 185)
+    UpdatesContainer.Size = UDim2.new(1, -5, 0, 185)
     UpdatesContainer.LayoutOrder = 3
     UpdatesContainer.Parent = Page
     ThemeManager:Register(UpdatesContainer, "BackgroundColor3", "Secondary")
