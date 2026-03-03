@@ -15,13 +15,6 @@ function Dashboard:Render(UI, order)
     local PageLayout = Page:FindFirstChildOfClass("UIListLayout")
     if PageLayout then PageLayout.SortOrder = Enum.SortOrder.LayoutOrder end
 
-    local Spacer = Instance.new("Frame")
-    Spacer.Name = "Spacer"
-    Spacer.Size = UDim2.new(1, -40, 0, 1)
-    Spacer.BackgroundTransparency = 1
-    Spacer.LayoutOrder = 1
-    Spacer.Parent = Page
-
     local QuickLinksContainer = Instance.new("Frame")
     QuickLinksContainer.Name = "QuickLinks"
     QuickLinksContainer.Size = UDim2.new(1, -40, 0, 140)

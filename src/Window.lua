@@ -132,19 +132,6 @@ function Window:Create(config)
     SidebarFrame.Parent = MainFrame
     UI.TabList = TabList
 
-    -- // ZMIANA: GlobalIndicator przeniesiony do TabList
-    local GlobalIndicator = Instance.new("Frame")
-    GlobalIndicator.Name = "GlobalIndicator"
-    GlobalIndicator.Size = UDim2.new(0, 2, 0, 45)
-    GlobalIndicator.Position = UDim2.new(0, 0, 0, 0) -- Pozycja relatywna do TabList
-    GlobalIndicator.BorderSizePixel = 0
-    GlobalIndicator.ZIndex = 20
-    GlobalIndicator.Visible = false
-    GlobalIndicator.Parent = TabList -- Teraz jest dzieckiem TabList
-    UI.GlobalIndicator = GlobalIndicator
-    ThemeManager:Register(GlobalIndicator, "BackgroundColor3", "Text")
-
-    -- // ZMIANA: Dodano VerticalLine
     local VerticalLine = Instance.new("Frame")
     VerticalLine.Size = UDim2.new(0, 1, 1, 0)
     VerticalLine.Position = UDim2.new(1, 0, 0, 0)
@@ -373,6 +360,16 @@ function Window:Create(config)
         TabButton.LayoutOrder = order or (#UI.Tabs + 1)
         TabButton.Parent = TabList
 
+        -- // ZMIANA: Indicator jest teraz wewnątrz przycisku
+        local Indicator = Instance.new("Frame")
+        Indicator.Name = "Indicator"
+        Indicator.Size = UDim2.new(0, 2, 1, 0)
+        Indicator.Position = UDim2.new(0, 0, 0, 0)
+        Indicator.BorderSizePixel = 0
+        Indicator.Visible = false -- Domyślnie ukryty
+        Indicator.Parent = TabButton
+        ThemeManager:Register(Indicator, "BackgroundColor3", "Text")
+
         local TabIcon = Instance.new("ImageLabel")
         TabIcon.Name = "Icon"
         TabIcon.Size = UDim2.new(0, 20, 0, 20)
@@ -417,13 +414,13 @@ function Window:Create(config)
         local function Select()
             if UI.SelectedTab == TabButton then return end
             
-            UI.GlobalIndicator.Visible = true
-
             if UI.SelectedTab then
                 local prevIcon = UI.SelectedTab:FindFirstChild("Icon")
                 local prevLabel = UI.SelectedTab:FindFirstChild("Label")
+                local prevIndicator = UI.SelectedTab:FindFirstChild("Indicator")
                 if prevIcon then TweenService:Create(prevIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
                 if prevLabel then TweenService:Create(prevLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
+                if prevIndicator then prevIndicator.Visible = false end
             end
 
             for _, p in pairs(UI.Pages) do p.Visible = false end
@@ -432,35 +429,7 @@ function Window:Create(config)
 
             TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
             TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
-
-            -- // ZMIANA: Obliczanie pozycji Indicatora względem TabList
-            -- Ponieważ Indicator jest teraz w TabList, jego pozycja musi być relatywna do przycisku
-            -- Ale przycisk jest w TabList, więc wystarczy pobrać jego pozycję Y
-
-            -- Musimy jednak uwzględnić, że UIListLayout układa elementy.
-            -- Najprościej: Ustawić pozycję Y Indicatora na pozycję Y przycisku
-
-            local targetY = TabButton.Position.Y.Offset -- Ponieważ używamy LayoutOrder, pozycja jest obliczana przez UIListLayout
-            -- Ale UIListLayout nie aktualizuje Position.Offset od razu.
-            -- Lepiej: Obliczyć pozycję na podstawie indeksu w posortowanej liście
-
-            local sortedTabs = {}
-            for _, t in pairs(TabList:GetChildren()) do
-                if t:IsA("TextButton") then table.insert(sortedTabs, t) end
-            end
-            table.sort(sortedTabs, function(a, b) return a.LayoutOrder < b.LayoutOrder end)
-
-            local index = 1
-            for i, t in ipairs(sortedTabs) do
-                if t == TabButton then index = i break end
-            end
-
-            -- Wysokość przycisku to 45px
-            targetY = (index - 1) * 45
-
-            TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                Position = UDim2.new(0, 0, 0, targetY)
-            }):Play()
+            Indicator.Visible = true -- Pokazujemy wskaźnik
         end
 
         TabButton.MouseButton1Click:Connect(Select)
