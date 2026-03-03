@@ -132,16 +132,26 @@ function Window:Create(config)
     SidebarFrame.Parent = MainFrame
     UI.TabList = TabList
 
+    -- // ZMIANA: GlobalIndicator przeniesiony do TabList
     local GlobalIndicator = Instance.new("Frame")
     GlobalIndicator.Name = "GlobalIndicator"
     GlobalIndicator.Size = UDim2.new(0, 2, 0, 45)
-    GlobalIndicator.Position = UDim2.new(0, 0, 0, 46)
+    GlobalIndicator.Position = UDim2.new(0, 0, 0, 0) -- Pozycja relatywna do TabList
     GlobalIndicator.BorderSizePixel = 0
     GlobalIndicator.ZIndex = 20
     GlobalIndicator.Visible = false
-    GlobalIndicator.Parent = SidebarFrame
+    GlobalIndicator.Parent = TabList -- Teraz jest dzieckiem TabList
     UI.GlobalIndicator = GlobalIndicator
     ThemeManager:Register(GlobalIndicator, "BackgroundColor3", "Text")
+
+    -- // ZMIANA: Dodano VerticalLine
+    local VerticalLine = Instance.new("Frame")
+    VerticalLine.Size = UDim2.new(0, 1, 1, 0)
+    VerticalLine.Position = UDim2.new(1, 0, 0, 0)
+    VerticalLine.BorderSizePixel = 0
+    VerticalLine.ZIndex = 10
+    VerticalLine.Parent = SidebarFrame
+    ThemeManager:Register(VerticalLine, "BackgroundColor3", "Accent")
 
     local PagesContainer = Instance.new("Frame")
     PagesContainer.Name = "PagesContainer"
@@ -422,7 +432,18 @@ function Window:Create(config)
 
             TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
             TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
-            
+
+            -- // ZMIANA: Obliczanie pozycji Indicatora względem TabList
+            -- Ponieważ Indicator jest teraz w TabList, jego pozycja musi być relatywna do przycisku
+            -- Ale przycisk jest w TabList, więc wystarczy pobrać jego pozycję Y
+
+            -- Musimy jednak uwzględnić, że UIListLayout układa elementy.
+            -- Najprościej: Ustawić pozycję Y Indicatora na pozycję Y przycisku
+
+            local targetY = TabButton.Position.Y.Offset -- Ponieważ używamy LayoutOrder, pozycja jest obliczana przez UIListLayout
+            -- Ale UIListLayout nie aktualizuje Position.Offset od razu.
+            -- Lepiej: Obliczyć pozycję na podstawie indeksu w posortowanej liście
+
             local sortedTabs = {}
             for _, t in pairs(TabList:GetChildren()) do
                 if t:IsA("TextButton") then table.insert(sortedTabs, t) end
@@ -434,7 +455,9 @@ function Window:Create(config)
                 if t == TabButton then index = i break end
             end
 
-            local targetY = 46 + ((index - 1) * 45)
+            -- Wysokość przycisku to 45px
+            targetY = (index - 1) * 45
+
             TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
                 Position = UDim2.new(0, 0, 0, targetY)
             }):Play()
