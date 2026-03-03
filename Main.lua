@@ -1,4 +1,4 @@
-local XHUB = {}
+local MenuLib = {}
 
 -- // SERWISY
 local UserInputService = game:GetService("UserInputService")
@@ -13,12 +13,20 @@ local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads
 -- // ŁADOWANIE MODUŁÓW
 local WindowModule = loadstring(game:HttpGet(baseUrl .. "Window.lua"))()
 
+-- // FUNKCJE POMOCNICZE
+function MenuLib:GenerateID(length)
+    local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    local result = ""
+    for i = 1, length or 12 do
+        result = result .. string.sub(chars, math.random(1, #chars), math.random(1, #chars))
+    end
+    return result
+end
+
 -- Funkcja do ładnego formatowania JSON (Pretty Print)
 function prettyEncode(tbl)
     local result = "{\n"
     local entries = {}
-
-    -- Kolejność kluczy dla estetyki (opcjonalne, ale ładne)
     local order = {"Main", "Secondary", "Accent", "Accent2", "Success", "Text", "Text_Secondary", "Close"}
 
     for _, k in ipairs(order) do
@@ -29,8 +37,6 @@ function prettyEncode(tbl)
             table.insert(entries, keyStr .. valStr)
         end
     end
-
-    -- Dodaj pozostałe klucze, jeśli są
     for k, v in pairs(tbl) do
         local found = false
         for _, o in ipairs(order) do if o == k then found = true break end end
@@ -40,23 +46,33 @@ function prettyEncode(tbl)
             table.insert(entries, keyStr .. valStr)
         end
     end
-
     result = result .. table.concat(entries, ",\n") .. "\n}"
     return result
 end
 
-function XHUB:CreateWindow(options)
+function MenuLib:CreateWindow(options)
     local Config = options or {}
-    local Name = Config.Name or "X HUB"
-    local Keybind = Config.ToggleUIKeybind or "Insert"
-    local TestMobile = Config.TestMobile or false
+    local Name = Config.Name or "Menu"
 
-    -- // 1. SYSTEM PLIKÓW I MOTYWÓW
+    -- // 1. SYSTEM IDENTYFIKACJI I USUWANIA STAREGO MENU
+    local menuId = "MenuInstance"
+    local ProtectedLocation = nil
+    pcall(function() ProtectedLocation = CoreGui end)
+    if not ProtectedLocation then ProtectedLocation = PlayerGui end
+
+    for _, child in pairs(ProtectedLocation:GetChildren()) do
+        if child:IsA("ScreenGui") and child:GetAttribute(menuId) then
+            child:Destroy()
+        end
+    end
+
+    -- // 2. SYSTEM PLIKÓW I MOTYWÓW
     local mainFolder = Name
     local themesFolder = mainFolder .. "/themes"
+    local configsFolder = mainFolder .. "/configs"
 
     if not isfolder(mainFolder) then makefolder(mainFolder) end
-    if not isfolder(mainFolder .. "/configs") then makefolder(mainFolder .. "/configs") end
+    if not isfolder(configsFolder) then makefolder(configsFolder) end
     if not isfolder(mainFolder .. "/emotes") then makefolder(mainFolder .. "/emotes") end
     if not isfolder(themesFolder) then makefolder(themesFolder) end
 
@@ -75,37 +91,43 @@ function XHUB:CreateWindow(options)
         Text_Secondary = {160, 160, 160},
         Close = {200, 50, 50}
     }
-
-    -- ZAWSZE nadpisujemy dark.json przy starcie, aby naprawić ewentualne błędy struktury
-    -- (W produkcji można to zmienić na sprawdzanie czy istnieje, ale teraz naprawiamy błędy)
     writefile(themesFolder .. "/dark.json", prettyEncode(darkTheme))
 
     local themeColors = darkTheme
-    -- Próba odczytu (na wypadek gdyby użytkownik zmienił coś ręcznie poprawnie)
     local success, data = pcall(function() return HttpService:JSONDecode(readfile(themesFolder .. "/dark.json")) end)
-    if success and type(data) == "table" then
-        themeColors = data
+    if success and type(data) == "table" then themeColors = data end
+
+    -- // CONFIG MANAGER
+    local menuConfig = {}
+    local configFilePath = configsFolder .. "/settings.json"
+
+    local function loadMenuConfig()
+        if isfile(configFilePath) then
+            local s, d = pcall(function() return HttpService:JSONDecode(readfile(configFilePath)) end)
+            if s and type(d) == "table" then menuConfig = d end
+        end
+    end
+    loadMenuConfig()
+
+    local function saveMenuConfig(flag, value)
+        menuConfig[flag] = value
+        writefile(configFilePath, HttpService:JSONEncode(menuConfig))
     end
 
-    -- 2. Tworzenie Okna
-    local ProtectedLocation = nil
-    pcall(function() ProtectedLocation = CoreGui end)
-    if not ProtectedLocation then ProtectedLocation = PlayerGui end
-
-    for _, child in pairs(ProtectedLocation:GetChildren()) do
-        if child:IsA("ScreenGui") and (child.Name:sub(1,5) == "XHUB_") then child:Destroy() end
-    end
-
+    -- // 3. TWORZENIE OKNA
     local UI = WindowModule:Create({
         Name = Name,
-        TestMobile = TestMobile,
         Tittle = Config.Tittle or "",
         TittlePos = Config.TittlePos or "Left",
-        Theme = themeColors
+        Theme = themeColors,
+        MenuId = menuId,
+        GenerateID = MenuLib.GenerateID,
+        MenuConfig = menuConfig,
+        SaveMenuConfig = saveMenuConfig
     })
     UI.ScreenGui.Parent = ProtectedLocation
 
-    -- 3. LOGIKA OTWIERANIA/ZAMYKANIA
+    -- // 4. LOGIKA UI
     local isVisible = true
     local isTweening = false
     local MainFrame = UI.MainFrame
@@ -127,7 +149,7 @@ function XHUB:CreateWindow(options)
     end
 
     UserInputService.InputBegan:Connect(function(input, gpe)
-        if not gpe and input.KeyCode == Enum.KeyCode[Keybind] then toggleMenu() end
+        if not gpe and input.KeyCode == Enum.KeyCode[Config.ToggleUIKeybind or "Insert"] then toggleMenu() end
     end)
     UI.MinBtn.MouseButton1Click:Connect(toggleMenu)
     UI.CloseBtn.MouseButton1Click:Connect(function()
@@ -135,51 +157,60 @@ function XHUB:CreateWindow(options)
     end)
     if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
 
-    -- 4. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
+    -- // 5. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
     local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
-    DashboardModule:Render(UI, 1)
+    DashboardModule:Render(UI)
 
     local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
     SettingsModule:Render(UI, 999, themeColors, mainFolder)
 
-    -- 5. PUBLICZNE API (Naprawione)
+    -- // 6. PUBLICZNE API
     local WindowAPI = {}
     local userTabCounter = 2
 
+    -- Ładowanie modułów elementów
+    local ButtonElement = loadstring(game:HttpGet(baseUrl .. "elements/Button.lua"))()
+    local ToggleElement = loadstring(game:HttpGet(baseUrl .. "elements/Toggle.lua"))()
+    local ColorPickerElement = loadstring(game:HttpGet(baseUrl .. "elements/ColorPicker.lua"))()
+    local SliderElement = loadstring(game:HttpGet(baseUrl .. "elements/Slider.lua"))()
+    local InputElement = loadstring(game:HttpGet(baseUrl .. "elements/Input.lua"))()
+    local DropdownElement = loadstring(game:HttpGet(baseUrl .. "elements/Dropdown.lua"))()
+
     function WindowAPI:CreateTab(name, icon)
-        -- Wywołujemy funkcję z Window.lua, która zwraca {Button, Page}
         local TabElements = UI:CreateTab(name, icon or "layers", userTabCounter)
         userTabCounter = userTabCounter + 1
 
+        -- Ustawienie UIGridLayout dla elementów
+        local GridLayout = Instance.new("UIGridLayout")
+        GridLayout.CellSize = UDim2.new(0.5, -5, 0, 35) -- Domyślnie 2 w rzędzie
+        GridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+        GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        GridLayout.Parent = TabElements.Page
+
         local TabAPI = {}
 
-        function TabAPI:CreateButton(text, callback)
-            local Button = Instance.new("TextButton")
-            Button.Name = text
-            Button.Text = text
-            Button.Size = UDim2.new(1, -40, 0, 35)
-            Button.BackgroundColor3 = Color3.fromRGB(35, 35, 35) -- Domyślny, ThemeManager nadpisze
-            Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-            Button.Font = Enum.Font.Gotham
-            Button.TextSize = 14
-            Button.Parent = TabElements.Page -- Dodajemy do strony!
+        function TabAPI:CreateButton(options)
+            return ButtonElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+        end
 
-            -- Rejestracja w ThemeManager
-            UI.ThemeManager:Register(Button, "BackgroundColor3", "Secondary")
-            UI.ThemeManager:Register(Button, "TextColor3", "Text")
+        function TabAPI:CreateToggle(options)
+            return ToggleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+        end
 
-            local Stroke = Instance.new("UIStroke", Button)
-            Stroke.Color = Color3.fromRGB(60, 60, 60)
-            Stroke.Thickness = 1
-            Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-            UI.ThemeManager:Register(Stroke, "Color", "Accent")
+        function TabAPI:CreateColorPicker(options)
+            return ColorPickerElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+        end
 
-            Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 6)
+        function TabAPI:CreateSlider(options)
+            return SliderElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+        end
 
-            if callback then
-                Button.MouseButton1Click:Connect(callback)
-            end
-            return Button
+        function TabAPI:CreateInput(options)
+            return InputElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+        end
+
+        function TabAPI:CreateDropdown(options)
+            return DropdownElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
         end
 
         return TabAPI
@@ -188,4 +219,4 @@ function XHUB:CreateWindow(options)
     return WindowAPI
 end
 
-return XHUB
+return MenuLib

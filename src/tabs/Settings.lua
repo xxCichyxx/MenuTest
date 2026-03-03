@@ -19,23 +19,6 @@ function Settings:Render(UI, order, theme, mainFolder)
         return Color3.fromRGB(unpack(colorTable))
     end
 
-    -- Funkcje Config
-    local configFile = mainFolder .. "/configs/settings.json"
-
-    local function loadConfig()
-        if isfile(configFile) then
-            local success, data = pcall(function() return HttpService:JSONDecode(readfile(configFile)) end)
-            if success and type(data) == "table" then return data end
-        end
-        return { AntiAfk = false } -- Domyślne wartości
-    end
-
-    local function saveConfig(data)
-        writefile(configFile, HttpService:JSONEncode(data))
-    end
-
-    local currentConfig = loadConfig()
-
     local PageLayout = Page:FindFirstChildOfClass("UIListLayout")
     if PageLayout then
         PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -280,74 +263,27 @@ function Settings:Render(UI, order, theme, mainFolder)
     SettingsPadding.Parent = SettingsContainer
 
     -- Anti-AFK Toggle
-    local AntiAfkFrame = Instance.new("Frame")
-    AntiAfkFrame.Size = UDim2.new(1, 0, 0, 30)
-    AntiAfkFrame.BackgroundTransparency = 1
-    AntiAfkFrame.Parent = SettingsContainer
-
-    local AntiAfkLabel = Instance.new("TextLabel")
-    AntiAfkLabel.Text = "Anti-AFK"
-    AntiAfkLabel.Font = Enum.Font.Gotham
-    AntiAfkLabel.TextSize = 14
-    AntiAfkLabel.Size = UDim2.new(1, -50, 1, 0)
-    AntiAfkLabel.BackgroundTransparency = 1
-    AntiAfkLabel.TextXAlignment = Enum.TextXAlignment.Left
-    AntiAfkLabel.Parent = AntiAfkFrame
-    ThemeManager:Register(AntiAfkLabel, "TextColor3", "Text")
-
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Size = UDim2.new(0, 40, 0, 20)
-    ToggleBtn.Position = UDim2.new(1, -40, 0.5, 0)
-    ToggleBtn.AnchorPoint = Vector2.new(0, 0.5)
-    ToggleBtn.Text = ""
-    ToggleBtn.Parent = AntiAfkFrame
-    ThemeManager:Register(ToggleBtn, "BackgroundColor3", "Accent2")
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-
-    local ToggleCircle = Instance.new("Frame")
-    ToggleCircle.Size = UDim2.new(0, 16, 0, 16)
-    ToggleCircle.Position = UDim2.new(0, 2, 0.5, 0)
-    ToggleCircle.AnchorPoint = Vector2.new(0, 0.5)
-    ToggleCircle.Parent = ToggleBtn
-    ThemeManager:Register(ToggleCircle, "BackgroundColor3", "Text")
-    Instance.new("UICorner", ToggleCircle).CornerRadius = UDim.new(1, 0)
-
     local antiAfkConnection
-
-    local function SetAntiAfk(state)
-        currentConfig.AntiAfk = state
-        saveConfig(currentConfig)
-
-        if state then
-            local successColor = Color3.fromRGB(unpack(ThemeManager.CurrentTheme.Success))
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = successColor}):Play()
-            ToggleCircle:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)
-
-            if antiAfkConnection then antiAfkConnection:Disconnect() end
-            antiAfkConnection = Players.LocalPlayer.Idled:Connect(function()
-                VirtualUser:CaptureController()
-                VirtualUser:ClickButton2(Vector2.new())
-            end)
-        else
-            local accent2Color = Color3.fromRGB(unpack(ThemeManager.CurrentTheme.Accent2))
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = accent2Color}):Play()
-            ToggleCircle:TweenPosition(UDim2.new(0, 2, 0.5, 0), "Out", "Quart", 0.2, true)
-
-            if antiAfkConnection then
-                antiAfkConnection:Disconnect()
-                antiAfkConnection = nil
+    local Tab = UI:CreateTab("Settings", "settings")
+    Tab:CreateToggle({
+        Name = "Anti-AFK",
+        CurrentValue = false,
+        Flag = "AntiAfk",
+        Callback = function(Value)
+            if Value then
+                if antiAfkConnection then antiAfkConnection:Disconnect() end
+                antiAfkConnection = Players.LocalPlayer.Idled:Connect(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new())
+                end)
+            else
+                if antiAfkConnection then
+                    antiAfkConnection:Disconnect()
+                    antiAfkConnection = nil
+                end
             end
-        end
-    end
-
-    ToggleBtn.MouseButton1Click:Connect(function()
-        SetAntiAfk(not currentConfig.AntiAfk)
-    end)
-
-    -- Inicjalizacja stanu z configu
-    if currentConfig.AntiAfk then
-        SetAntiAfk(true)
-    end
+        end,
+    })
 end
 
 return Settings

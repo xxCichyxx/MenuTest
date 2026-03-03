@@ -11,12 +11,15 @@ local TweenService = game:GetService("TweenService")
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 local Icons = loadstring(game:HttpGet(baseUrl .. "Icons.lua"))()
 local Interactions = loadstring(game:HttpGet(baseUrl .. "Interactions.lua"))()
+local SidebarModule = loadstring(game:HttpGet(baseUrl .. "Sidebar.lua"))()
 
 function Window:Create(config)
     local UI = {}
     UI.Tabs = {}
     UI.Pages = {}
     UI.SelectedTab = nil
+    UI.MenuConfig = config.MenuConfig
+    UI.SaveMenuConfig = config.SaveMenuConfig
 
     -- // THEME MANAGER
     local ThemeManager = { Elements = {}, CurrentTheme = config.Theme }
@@ -49,20 +52,14 @@ function Window:Create(config)
     local ProtectedLocation = nil
     pcall(function() ProtectedLocation = CoreGui end)
     if not ProtectedLocation then ProtectedLocation = Players.LocalPlayer:WaitForChild("PlayerGui") end
-    for _, child in pairs(ProtectedLocation:GetChildren()) do
-        if child:IsA("ScreenGui") and child:FindFirstChild("XHUB_IDENTIFIER") then child:Destroy() end
-    end
 
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "XHUB_" .. math.random(1, 9999)
+    ScreenGui.Name = config.GenerateID()
+    ScreenGui:SetAttribute(config.MenuId, true)
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = ProtectedLocation
     UI.ScreenGui = ScreenGui
-
-    local Tag = Instance.new("BoolValue")
-    Tag.Name = "XHUB_IDENTIFIER"
-    Tag.Parent = ScreenGui
 
     local Shadow = Instance.new("ImageLabel")
     Shadow.Name = "Shadow"
@@ -101,7 +98,6 @@ function Window:Create(config)
     TopBar.Parent = MainFrame
     UI.TopBar = TopBar
 
-    -- // PRZYWRÓCONY TYTUŁ
     if config.Tittle and config.Tittle ~= "" then
         local TopTitle = Instance.new("TextLabel")
         TopTitle.Name = "TopTitle"
@@ -132,13 +128,9 @@ function Window:Create(config)
     TopLine.Parent = MainFrame
     ThemeManager:Register(TopLine, "BackgroundColor3", "Accent")
 
-    local Sidebar = Instance.new("Frame")
-    Sidebar.Name = "Sidebar"
-    Sidebar.Size = UDim2.new(0, 200, 1, -32)
-    Sidebar.Position = UDim2.new(0, 0, 0, 32)
-    Sidebar.BackgroundTransparency = 1
-    Sidebar.Parent = MainFrame
-    UI.Sidebar = Sidebar
+    local SidebarFrame, TabList = SidebarModule:Create(UI, config.Theme, config)
+    SidebarFrame.Parent = MainFrame
+    UI.TabList = TabList
 
     local GlobalIndicator = Instance.new("Frame")
     GlobalIndicator.Name = "GlobalIndicator"
@@ -147,50 +139,9 @@ function Window:Create(config)
     GlobalIndicator.BorderSizePixel = 0
     GlobalIndicator.ZIndex = 20
     GlobalIndicator.Visible = false
-    GlobalIndicator.Parent = Sidebar
+    GlobalIndicator.Parent = SidebarFrame
     UI.GlobalIndicator = GlobalIndicator
     ThemeManager:Register(GlobalIndicator, "BackgroundColor3", "Text")
-
-    local VerticalLine = Instance.new("Frame")
-    VerticalLine.Size = UDim2.new(0, 1, 1, 0)
-    VerticalLine.Position = UDim2.new(1, 0, 0, 0)
-    VerticalLine.BorderSizePixel = 0
-    VerticalLine.ZIndex = 10
-    VerticalLine.Parent = Sidebar
-    ThemeManager:Register(VerticalLine, "BackgroundColor3", "Accent")
-
-    local Title = Instance.new("TextLabel")
-    Title.Name = "Title"
-    Title.Text = config.Name or "X HUB"
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 16
-    Title.Size = UDim2.new(1, 0, 0, 45)
-    Title.BackgroundTransparency = 1
-    Title.Parent = Sidebar
-    ThemeManager:Register(Title, "TextColor3", "Text")
-
-    local TitleLine = Instance.new("Frame")
-    TitleLine.Size = UDim2.new(1, 0, 0, 1)
-    TitleLine.Position = UDim2.new(0, 0, 0, 45)
-    TitleLine.BorderSizePixel = 0
-    TitleLine.ZIndex = 10
-    TitleLine.Parent = Sidebar
-    ThemeManager:Register(TitleLine, "BackgroundColor3", "Accent")
-
-    local TabList = Instance.new("ScrollingFrame")
-    TabList.Name = "TabList"
-    TabList.Size = UDim2.new(1, 0, 1, -46)
-    TabList.Position = UDim2.new(0, 0, 0, 46)
-    TabList.BackgroundTransparency = 1
-    TabList.BorderSizePixel = 0
-    TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
-    TabList.ScrollBarThickness = 0
-    TabList.Parent = Sidebar
-    UI.TabList = TabList
-
-    local TabListLayout = Instance.new("UIListLayout")
-    TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    TabListLayout.Parent = TabList
 
     local PagesContainer = Instance.new("Frame")
     PagesContainer.Name = "PagesContainer"
@@ -435,19 +386,24 @@ function Window:Create(config)
         ThemeManager:Register(TabLabel, "TextColor3", "Text_Secondary")
 
         local Page = Instance.new("ScrollingFrame")
+        Page.Name = name .. "Page"
         Page.Size = UDim2.new(1, 0, 1, 0)
         Page.BackgroundTransparency = 1
         Page.BorderSizePixel = 0
         Page.Visible = false
         Page.CanvasSize = UDim2.new(0,0,0,0)
         Page.ScrollBarThickness = 0
-        Page.Parent = PagesContainer
+        Page.Parent = UI.PagesContainer
 
         local PageLayout = Instance.new("UIListLayout", Page)
         PageLayout.Padding = UDim.new(0, 10)
-        Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 20)
-        Instance.new("UIPadding", Page).PaddingTop = UDim.new(0, 20)
+        PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
         
+        local PagePadding = Instance.new("UIPadding", Page)
+        PagePadding.PaddingLeft = UDim.new(0, 20)
+        PagePadding.PaddingTop = UDim.new(0, 20)
+        PagePadding.PaddingRight = UDim.new(0, 20)
+
         local function Select()
             if UI.SelectedTab == TabButton then return end
             
