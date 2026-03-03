@@ -48,7 +48,7 @@ function Window:Create(config)
     -- // END THEME MANAGER
 
     local isTouch = UserInputService.TouchEnabled or config.TestMobile
-    
+
     local ProtectedLocation = nil
     pcall(function() ProtectedLocation = CoreGui end)
     if not ProtectedLocation then ProtectedLocation = Players.LocalPlayer:WaitForChild("PlayerGui") end
@@ -71,7 +71,7 @@ function Window:Create(config)
     Shadow.ScaleType = Enum.ScaleType.Slice
     Shadow.SliceCenter = Rect.new(49, 49, 50, 50)
     Shadow.Parent = ScreenGui
-    
+
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.Size = UDim2.new(0, 700, 0, 400)
@@ -132,56 +132,16 @@ function Window:Create(config)
     SidebarFrame.Parent = MainFrame
     UI.TabList = TabList
 
-    -- // GLOBAL INDICATOR (Poprawiona lokalizacja i kotwiczenie)
     local GlobalIndicator = Instance.new("Frame")
     GlobalIndicator.Name = "GlobalIndicator"
     GlobalIndicator.Size = UDim2.new(0, 2, 0, 45)
-    GlobalIndicator.Position = UDim2.new(0, 0, 0, 0)
-    GlobalIndicator.AnchorPoint = Vector2.new(0, 0) -- Lewy górny róg dla matematyki indeksowej
+    GlobalIndicator.Position = UDim2.new(0, 0, 0, 46)
     GlobalIndicator.BorderSizePixel = 0
     GlobalIndicator.ZIndex = 20
     GlobalIndicator.Visible = false
-    GlobalIndicator.Parent = TabList -- Wewnątrz listy dla scrollowania
+    GlobalIndicator.Parent = SidebarFrame
     UI.GlobalIndicator = GlobalIndicator
     ThemeManager:Register(GlobalIndicator, "BackgroundColor3", "Text")
-
-    -- // PROFIL GRACZA NA DOLE SIDEBARU
-    local ProfileFrame = Instance.new("Frame")
-    ProfileFrame.Name = "ProfileFrame"
-    ProfileFrame.Size = UDim2.new(1, 0, 0, 50)
-    ProfileFrame.Position = UDim2.new(0, 0, 1, 0)
-    ProfileFrame.AnchorPoint = Vector2.new(0, 1)
-    ProfileFrame.BackgroundTransparency = 1
-    ProfileFrame.Parent = SidebarFrame
-
-    local ProfileLine = Instance.new("Frame")
-    ProfileLine.Size = UDim2.new(1, 0, 0, 1)
-    ProfileLine.Position = UDim2.new(0, 0, 0, 0)
-    ProfileLine.BorderSizePixel = 0
-    ProfileLine.Parent = ProfileFrame
-    ThemeManager:Register(ProfileLine, "BackgroundColor3", "Accent")
-
-    local Avatar = Instance.new("ImageLabel")
-    Avatar.Name = "Avatar"
-    Avatar.Size = UDim2.new(0, 32, 0, 32)
-    Avatar.Position = UDim2.new(0, 10, 0.5, 0)
-    Avatar.AnchorPoint = Vector2.new(0, 0.5)
-    Avatar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. Players.LocalPlayer.UserId .. "&w=150&h=150"
-    Avatar.Parent = ProfileFrame
-    Instance.new("UICorner", Avatar).CornerRadius = UDim.new(1, 0)
-
-    local DisplayName = Instance.new("TextLabel")
-    DisplayName.Name = "DisplayName"
-    DisplayName.Size = UDim2.new(1, -55, 1, 0)
-    DisplayName.Position = UDim2.new(0, 50, 0, 0)
-    DisplayName.BackgroundTransparency = 1
-    DisplayName.Text = Players.LocalPlayer.DisplayName
-    DisplayName.Font = Enum.Font.GothamMedium
-    DisplayName.TextSize = 12
-    DisplayName.TextXAlignment = Enum.TextXAlignment.Left
-    DisplayName.Parent = ProfileFrame
-    ThemeManager:Register(DisplayName, "TextColor3", "Text")
 
     local PagesContainer = Instance.new("Frame")
     PagesContainer.Name = "PagesContainer"
@@ -337,6 +297,61 @@ function Window:Create(config)
         Interactions:MakeDraggable(MobileToggle, MobileToggle)
     end
 
+    local function ShowExitModal()
+        local Overlay = Instance.new("Frame")
+        Overlay.Name = "ExitOverlay"
+        Overlay.Size = UDim2.new(1, 0, 1, 0)
+        Overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        Overlay.BackgroundTransparency = 0.5
+        Overlay.ZIndex = 100
+        Overlay.Parent = MainFrame
+
+        local Modal = Instance.new("Frame")
+        Modal.Name = "ExitModal"
+        Modal.Size = UDim2.new(0, 300, 0, 150)
+        Modal.Position = UDim2.new(0.5, 0, 0.5, 0)
+        Modal.AnchorPoint = Vector2.new(0.5, 0.5)
+        Modal.BorderSizePixel = 0
+        Modal.Parent = Overlay
+        ThemeManager:Register(Modal, "BackgroundColor3", "Secondary")
+
+        Instance.new("UICorner", Modal).CornerRadius = UDim.new(0, 8)
+        local Stroke = Instance.new("UIStroke", Modal)
+        Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        Stroke.Thickness = 1.5
+        ThemeManager:Register(Stroke, "Color", "Accent")
+
+        local Question = Instance.new("TextLabel")
+        Question.Text = "Are you sure you want to exit?"
+        Question.Font = Enum.Font.GothamBold
+        Question.TextSize = 16
+        Question.Size = UDim2.new(1, 0, 0, 80)
+        Question.BackgroundTransparency = 1
+        Question.Parent = Modal
+        ThemeManager:Register(Question, "TextColor3", "Text")
+
+        local function createBtn(text, colorKey, pos)
+            local btn = Instance.new("TextButton")
+            btn.Text = text
+            btn.Font = Enum.Font.GothamMedium
+            btn.TextSize = 14
+            btn.Size = UDim2.new(0, 100, 0, 35)
+            btn.Position = pos
+            btn.Parent = Modal
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+            ThemeManager:Register(btn, "TextColor3", "Text")
+            ThemeManager:Register(btn, "BackgroundColor3", colorKey)
+            return btn
+        end
+
+        local YesBtn = createBtn("Yes", "Close", UDim2.new(0.5, -110, 0.7, 0))
+        local NoBtn = createBtn("No", "Accent", UDim2.new(0.5, 10, 0.7, 0))
+
+        YesBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+        NoBtn.MouseButton1Click:Connect(function() Overlay:Destroy() end)
+    end
+    UI.ShowExitModal = ShowExitModal
+
     function UI:CreateTab(name, icon, order)
         local TabButton = Instance.new("TextButton")
         TabButton.Name = name
@@ -408,11 +423,18 @@ function Window:Create(config)
             TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
             TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
 
-            -- // NOWA MATEMATYKA INDEKSOWA (Niezależna od AbsolutePosition)
-            local listLayout = TabList:FindFirstChildOfClass("UIListLayout")
-            local padding = listLayout and listLayout.Padding.Offset or 0
-            local targetY = (TabButton.LayoutOrder - 1) * (45 + padding)
+            local sortedTabs = {}
+            for _, t in pairs(TabList:GetChildren()) do
+                if t:IsA("TextButton") then table.insert(sortedTabs, t) end
+            end
+            table.sort(sortedTabs, function(a, b) return a.LayoutOrder < b.LayoutOrder end)
 
+            local index = 1
+            for i, t in ipairs(sortedTabs) do
+                if t == TabButton then index = i break end
+            end
+
+            local targetY = 46 + ((index - 1) * 45)
             TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
                 Position = UDim2.new(0, 0, 0, targetY)
             }):Play()
