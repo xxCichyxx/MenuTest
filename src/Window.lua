@@ -137,6 +137,7 @@ function Window:Create(config)
     GlobalIndicator.Name = "GlobalIndicator"
     GlobalIndicator.Size = UDim2.new(0, 2, 0, 45)
     GlobalIndicator.Position = UDim2.new(0, 0, 0, 0)
+    GlobalIndicator.AnchorPoint = Vector2.new(0, 0.5) -- Kotwiczenie w pionie
     GlobalIndicator.BorderSizePixel = 0
     GlobalIndicator.ZIndex = 20
     GlobalIndicator.Visible = false
@@ -432,19 +433,10 @@ function Window:Create(config)
             TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
             TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
 
-            -- // ZMIANA: Obliczanie pozycji Indicatora
-            local sortedTabs = {}
-            for _, t in pairs(TabList:GetChildren()) do
-                if t:IsA("TextButton") then table.insert(sortedTabs, t) end
-            end
-            table.sort(sortedTabs, function(a, b) return a.LayoutOrder < b.LayoutOrder end)
+            -- // ZMIANA: Obliczanie pozycji Indicatora metodą hybrydową
+            local relativeY = TabButton.AbsolutePosition.Y - TabList.AbsolutePosition.Y + TabList.CanvasPosition.Y
+            local targetY = relativeY + (TabButton.AbsoluteSize.Y / 2)
 
-            local index = 1
-            for i, t in ipairs(sortedTabs) do
-                if t == TabButton then index = i break end
-            end
-
-            local targetY = (index - 1) * 45
             TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
                 Position = UDim2.new(0, 0, 0, targetY)
             }):Play()
