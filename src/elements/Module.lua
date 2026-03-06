@@ -42,7 +42,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     Header.BackgroundTransparency = 1
     Header.Parent = ModuleFrame
 
-    -- Przycisk do Toggle (Cały lewy obszar - Lewy Klik)
+    -- Przycisk Główny (Obsługuje Lewy i Prawy Klik)
     local ClickBtn = Instance.new("TextButton")
     ClickBtn.Name = "ClickBtn"
     ClickBtn.Size = UDim2.new(1, -100, 1, 0) -- Zostawiamy miejsce na Bind i Toggle
@@ -58,7 +58,10 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         Icon.AnchorPoint = Vector2.new(0, 0.5)
         Icon.BackgroundTransparency = 1
         Icon.ImageColor3 = Colors.Text
-        Icon.Parent = Header
+        Icon.Parent = Header -- Ikona na wierzchu (ale pod ClickBtn, bo ClickBtn jest przezroczysty)
+        -- Uwaga: ClickBtn jest w Header, Icon też. Żeby ClickBtn łapał kliknięcia, musi być nad ikoną (ZIndex) lub po niej w hierarchii.
+        -- Tutaj ClickBtn jest pierwszy, więc jest "pod spodem". Zmieńmy ZIndex.
+        ClickBtn.ZIndex = 10
         Icons:Apply(Icon, options.Icon)
     end
 
@@ -85,6 +88,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     BindBtn.TextColor3 = Colors.TextDim
     BindBtn.Font = Enum.Font.GothamBold
     BindBtn.TextSize = 12
+    BindBtn.ZIndex = 11 -- Wyżej niż ClickBtn
     BindBtn.Parent = Header
     Instance.new("UICorner", BindBtn).CornerRadius = UDim.new(0, 4)
 
@@ -96,6 +100,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     ToggleContainer.AnchorPoint = Vector2.new(1, 0.5)
     ToggleContainer.BackgroundColor3 = Colors.Stroke
     ToggleContainer.Text = ""
+    ToggleContainer.ZIndex = 11 -- Wyżej niż ClickBtn
     ToggleContainer.Parent = Header
     Instance.new("UICorner", ToggleContainer).CornerRadius = UDim.new(1, 0)
 
@@ -164,8 +169,29 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         if options.Callback then options.Callback(Enabled) end
     end
 
-    -- Obsługa kliknięć (Lewy)
-    ClickBtn.MouseButton1Click:Connect(function() ToggleModule() end)
+    -- Logika Rozwijania
+    local function ToggleExpand()
+        Expanded = not Expanded
+        Content.Visible = Expanded
+
+        local targetHeight = Expanded and (50 + ContentLayout.AbsoluteContentSize.Y + 20) or 50
+        TweenService:Create(ModuleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0.5, -5, 0, targetHeight)
+        }):Play()
+    end
+
+    -- OBSŁUGA KLIKNIĘĆ (HYBRYDOWA)
+    ClickBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            -- Lewy Klik: Włącz/Wyłącz
+            ToggleModule()
+        elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+            -- Prawy Klik: Rozwiń/Zwiń
+            ToggleExpand()
+        end
+    end)
+
+    -- Toggle Switch też działa na lewy klik
     ToggleContainer.MouseButton1Click:Connect(function() ToggleModule() end)
 
     -- Obsługa Bindowania
@@ -192,26 +218,11 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         end
     end)
 
-    -- Obsługa Prawego Kliknięcia (Rozwijanie)
-    -- Używamy InputBegan na Headerze, aby złapać prawy klik
-    Header.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton2 then
-            Expanded = not Expanded
-            Content.Visible = Expanded -- Pokaż/Ukryj kontener
-
-            local targetHeight = Expanded and (50 + ContentLayout.AbsoluteContentSize.Y + 20) or 50
-            TweenService:Create(ModuleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                Size = UDim2.new(0.5, -5, 0, targetHeight)
-            }):Play()
-        end
-    end)
-
     -- Auto-skalowanie przy dodawaniu elementów
     ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         if Expanded then
             local targetHeight = 50 + ContentLayout.AbsoluteContentSize.Y + 20
-            -- TweenService:Create(ModuleFrame, TweenInfo.new(0.1), {Size = UDim2.new(0.5, -5, 0, targetHeight)}):Play()
-            ModuleFrame.Size = UDim2.new(0.5, -5, 0, targetHeight) -- Bez tweena dla płynności przy dodawaniu
+            ModuleFrame.Size = UDim2.new(0.5, -5, 0, targetHeight)
         end
     end)
 
