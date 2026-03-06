@@ -7,7 +7,7 @@ local ColorPickerElement = loadstring(game:HttpGet("https://raw.githubuserconten
 local ButtonElement = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Button.lua"))()
 local Icons = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/Icons.lua"))()
 
-return function(options, themeManager, parent, menuConfig, saveMenuConfig, addConnection)
+return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     local TweenService = game:GetService("TweenService")
     local UserInputService = game:GetService("UserInputService")
 
@@ -21,7 +21,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig, addCo
 
     local ModuleFrame = Instance.new("Frame")
     ModuleFrame.Name = options.Name or "Module"
-    ModuleFrame.Size = UDim2.new(0, 220, 0, 50) -- Stała szerokość dla Gridu
+    ModuleFrame.Size = UDim2.new(1, 0, 0, 50) -- Pełna szerokość kolumny
     ModuleFrame.BackgroundColor3 = Colors.Background
     ModuleFrame.ClipsDescendants = true
     ModuleFrame.Parent = parent
@@ -139,7 +139,8 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig, addCo
     end
 
     local function UpdateVisuals(instant)
-        if not ModuleFrame.Parent then instant = true end
+        -- FIX: Sprawdzamy czy obiekt jest w drzewie gry
+        if not ModuleFrame:IsDescendantOf(game) then instant = true end
 
         if Enabled then
             if instant then
@@ -180,7 +181,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig, addCo
 
             local targetHeight = Expanded and (50 + ContentLayout.AbsoluteContentSize.Y + 20) or 50
             TweenService:Create(ModuleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                Size = UDim2.new(0, 220, 0, targetHeight)
+                Size = UDim2.new(1, 0, 0, targetHeight) -- Pełna szerokość kolumny
             }):Play()
         end
     end)
@@ -193,30 +194,27 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig, addCo
         BindBtn.TextColor3 = Colors.Accent
     end)
 
-    -- Używamy addConnection, aby zarejestrować bind
-    if addConnection then
-        addConnection(UserInputService.InputBegan:Connect(function(input, gpe)
-            if Binding and input.UserInputType == Enum.UserInputType.Keyboard then
-                if input.KeyCode == Enum.KeyCode.Backspace then
-                    Keybind = nil
-                    BindBtn.Text = "..."
-                else
-                    Keybind = input.KeyCode
-                    BindBtn.Text = input.KeyCode.Name:sub(1, 3)
-                end
-                Binding = false
-                BindBtn.TextColor3 = Colors.TextDim
-                if options.Flag then saveMenuConfig(options.Flag .. "_Bind", Keybind and Keybind.Name or nil) end
-            elseif not gpe and Keybind and input.KeyCode == Keybind then
-                ToggleModule()
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if Binding and input.UserInputType == Enum.UserInputType.Keyboard then
+            if input.KeyCode == Enum.KeyCode.Backspace then
+                Keybind = nil
+                BindBtn.Text = "..."
+            else
+                Keybind = input.KeyCode
+                BindBtn.Text = input.KeyCode.Name:sub(1, 3)
             end
-        end))
-    end
+            Binding = false
+            BindBtn.TextColor3 = Colors.TextDim
+            if options.Flag then saveMenuConfig(options.Flag .. "_Bind", Keybind and Keybind.Name or nil) end
+        elseif not gpe and Keybind and input.KeyCode == Keybind then
+            ToggleModule()
+        end
+    end)
 
     ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         if Expanded then
             local targetHeight = 50 + ContentLayout.AbsoluteContentSize.Y + 20
-            ModuleFrame.Size = UDim2.new(0, 220, 0, targetHeight)
+            ModuleFrame.Size = UDim2.new(1, 0, 0, targetHeight)
         end
     end)
 
