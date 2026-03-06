@@ -52,6 +52,22 @@ function MenuLib:CreateWindow(options)
     local Config = options or {}
     local Name = Config.Name or "Menu"
 
+    -- // SYSTEM CLEANUP (Zarządzanie połączeniami)
+    local Connections = {}
+
+    local function AddConnection(conn)
+        table.insert(Connections, conn)
+        return conn
+    end
+
+    local function Cleanup()
+        for _, conn in pairs(Connections) do
+            if conn then conn:Disconnect() end
+        end
+        Connections = {}
+    end
+
+    -- // 1. SYSTEM IDENTYFIKACJI I USUWANIA STAREGO MENU
     local menuId = "MenuInstance"
     local ProtectedLocation = nil
     pcall(function() ProtectedLocation = CoreGui end)
@@ -63,6 +79,7 @@ function MenuLib:CreateWindow(options)
         end
     end
 
+    -- // 2. SYSTEM PLIKÓW I MOTYWÓW
     local mainFolder = Name
     local themesFolder = mainFolder .. "/themes"
     local configsFolder = mainFolder .. "/configs"
@@ -121,6 +138,9 @@ function MenuLib:CreateWindow(options)
     })
     UI.ScreenGui.Parent = ProtectedLocation
 
+    -- Podpinamy Cleanup pod zniszczenie GUI
+    UI.ScreenGui.Destroying:Connect(Cleanup)
+
     -- 4. LOGIKA UI
     local isVisible = true
     local isTweening = false
@@ -142,12 +162,17 @@ function MenuLib:CreateWindow(options)
         end)
     end
 
-    UserInputService.InputBegan:Connect(function(input, gpe)
+    AddConnection(UserInputService.InputBegan:Connect(function(input, gpe)
         if not gpe and input.KeyCode == Enum.KeyCode[Config.ToggleUIKeybind or "Insert"] then toggleMenu() end
-    end)
+    end))
+
     UI.MinBtn.MouseButton1Click:Connect(toggleMenu)
     UI.CloseBtn.MouseButton1Click:Connect(function()
-        if UI.ShowExitModal then UI.ShowExitModal() else UI.ScreenGui:Destroy() end
+        if UI.ShowExitModal then
+            UI.ShowExitModal()
+        else
+            UI.ScreenGui:Destroy() -- To wywoła Cleanup
+        end
     end)
     if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
 
@@ -183,32 +208,33 @@ function MenuLib:CreateWindow(options)
         local TabAPI = {}
         TabAPI.Page = TabElements.Page
 
+        -- Przekazujemy AddConnection do elementów, aby mogły rejestrować swoje bindy
         function TabAPI:CreateButton(options)
-            return ButtonElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+            return ButtonElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
 
         function TabAPI:CreateToggle(options)
-            return ToggleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+            return ToggleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
 
         function TabAPI:CreateColorPicker(options)
-            return ColorPickerElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+            return ColorPickerElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
 
         function TabAPI:CreateSlider(options)
-            return SliderElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+            return SliderElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
 
         function TabAPI:CreateInput(options)
-            return InputElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+            return InputElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
 
         function TabAPI:CreateDropdown(options)
-            return DropdownElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+            return DropdownElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
 
         function TabAPI:CreateModule(options)
-            return ModuleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
+            return ModuleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
 
         return TabAPI
