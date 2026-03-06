@@ -49,6 +49,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     ClickBtn.BackgroundTransparency = 1
     ClickBtn.Text = ""
     ClickBtn.Parent = Header
+    ClickBtn.ZIndex = 10
 
     -- Ikona
     if options.Icon then
@@ -58,10 +59,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         Icon.AnchorPoint = Vector2.new(0, 0.5)
         Icon.BackgroundTransparency = 1
         Icon.ImageColor3 = Colors.Text
-        Icon.Parent = Header -- Ikona na wierzchu (ale pod ClickBtn, bo ClickBtn jest przezroczysty)
-        -- Uwaga: ClickBtn jest w Header, Icon też. Żeby ClickBtn łapał kliknięcia, musi być nad ikoną (ZIndex) lub po niej w hierarchii.
-        -- Tutaj ClickBtn jest pierwszy, więc jest "pod spodem". Zmieńmy ZIndex.
-        ClickBtn.ZIndex = 10
+        Icon.Parent = Header
         Icons:Apply(Icon, options.Icon)
     end
 
@@ -88,7 +86,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     BindBtn.TextColor3 = Colors.TextDim
     BindBtn.Font = Enum.Font.GothamBold
     BindBtn.TextSize = 12
-    BindBtn.ZIndex = 11 -- Wyżej niż ClickBtn
+    BindBtn.ZIndex = 11
     BindBtn.Parent = Header
     Instance.new("UICorner", BindBtn).CornerRadius = UDim.new(0, 4)
 
@@ -100,7 +98,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     ToggleContainer.AnchorPoint = Vector2.new(1, 0.5)
     ToggleContainer.BackgroundColor3 = Colors.Stroke
     ToggleContainer.Text = ""
-    ToggleContainer.ZIndex = 11 -- Wyżej niż ClickBtn
+    ToggleContainer.ZIndex = 11
     ToggleContainer.Parent = Header
     Instance.new("UICorner", ToggleContainer).CornerRadius = UDim.new(1, 0)
 
@@ -120,7 +118,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     Content.AutomaticSize = Enum.AutomaticSize.Y
     Content.BackgroundTransparency = 1
     Content.ClipsDescendants = true
-    Content.Visible = false -- Domyślnie ukryty
+    Content.Visible = false
     Content.Parent = ModuleFrame
 
     local ContentLayout = Instance.new("UIListLayout")
@@ -150,48 +148,52 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         if Keybind then BindBtn.Text = Keybind.Name:sub(1, 3) end
     end
 
-    local function UpdateVisuals()
+    local function UpdateVisuals(instant)
         if Enabled then
-            TweenService:Create(ToggleContainer, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Accent}):Play()
-            ToggleCircle:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)
-            Label.TextColor3 = Colors.Text
+            if instant then
+                ToggleContainer.BackgroundColor3 = Colors.Accent
+                ToggleCircle.Position = UDim2.new(1, -18, 0.5, 0)
+                Label.TextColor3 = Colors.Text
+            else
+                TweenService:Create(ToggleContainer, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Accent}):Play()
+                ToggleCircle:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)
+                Label.TextColor3 = Colors.Text
+            end
         else
-            TweenService:Create(ToggleContainer, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Stroke}):Play()
-            ToggleCircle:TweenPosition(UDim2.new(0, 2, 0.5, 0), "Out", "Quart", 0.2, true)
-            Label.TextColor3 = Colors.TextDim
+            if instant then
+                ToggleContainer.BackgroundColor3 = Colors.Stroke
+                ToggleCircle.Position = UDim2.new(0, 2, 0.5, 0)
+                Label.TextColor3 = Colors.TextDim
+            else
+                TweenService:Create(ToggleContainer, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Stroke}):Play()
+                ToggleCircle:TweenPosition(UDim2.new(0, 2, 0.5, 0), "Out", "Quart", 0.2, true)
+                Label.TextColor3 = Colors.TextDim
+            end
         end
     end
 
     local function ToggleModule(forceState)
         if forceState ~= nil then Enabled = forceState else Enabled = not Enabled end
-        UpdateVisuals()
+        UpdateVisuals(false) -- Użyj tweena przy interakcji
         if options.Flag then saveMenuConfig(options.Flag, Enabled) end
         if options.Callback then options.Callback(Enabled) end
     end
 
-    -- Logika Rozwijania
-    local function ToggleExpand()
-        Expanded = not Expanded
-        Content.Visible = Expanded
-
-        local targetHeight = Expanded and (50 + ContentLayout.AbsoluteContentSize.Y + 20) or 50
-        TweenService:Create(ModuleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0.5, -5, 0, targetHeight)
-        }):Play()
-    end
-
-    -- OBSŁUGA KLIKNIĘĆ (HYBRYDOWA)
+    -- Obsługa kliknięć
     ClickBtn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            -- Lewy Klik: Włącz/Wyłącz
             ToggleModule()
         elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
-            -- Prawy Klik: Rozwiń/Zwiń
-            ToggleExpand()
+            Expanded = not Expanded
+            Content.Visible = Expanded
+
+            local targetHeight = Expanded and (50 + ContentLayout.AbsoluteContentSize.Y + 20) or 50
+            TweenService:Create(ModuleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0.5, -5, 0, targetHeight)
+            }):Play()
         end
     end)
 
-    -- Toggle Switch też działa na lewy klik
     ToggleContainer.MouseButton1Click:Connect(function() ToggleModule() end)
 
     -- Obsługa Bindowania
@@ -218,7 +220,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         end
     end)
 
-    -- Auto-skalowanie przy dodawaniu elementów
+    -- Auto-skalowanie
     ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         if Expanded then
             local targetHeight = 50 + ContentLayout.AbsoluteContentSize.Y + 20
@@ -226,7 +228,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         end
     end)
 
-    UpdateVisuals()
+    UpdateVisuals(true) -- Inicjalizacja natychmiastowa (bez tweena)
 
     -- API
     local API = {}
