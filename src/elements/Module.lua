@@ -3,11 +3,11 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     local UserInputService = game:GetService("UserInputService")
     local Icons = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/Icons.lua"))()
 
-    -- Kolory ze specyfikacji
+    -- Kolory
     local Colors = {
-        Background = Color3.fromRGB(18, 18, 22), -- #121216
-        Stroke = Color3.fromRGB(31, 31, 38),     -- #1F1F26
-        Accent = Color3.fromRGB(120, 100, 255),  -- #7864FF
+        Background = Color3.fromRGB(18, 18, 22),
+        Stroke = Color3.fromRGB(31, 31, 38),
+        Accent = Color3.fromRGB(120, 100, 255),
         Text = Color3.fromRGB(255, 255, 255),
         TextDim = Color3.fromRGB(150, 150, 160)
     }
@@ -15,7 +15,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     -- Główny kontener modułu
     local ModuleFrame = Instance.new("Frame")
     ModuleFrame.Name = options.Name or "Module"
-    ModuleFrame.Size = UDim2.new(0.5, -5, 0, 45) -- Startowa wysokość (tylko nagłówek)
+    ModuleFrame.Size = UDim2.new(0.5, -5, 0, 45) -- Startowa wysokość
     ModuleFrame.BackgroundColor3 = Colors.Background
     ModuleFrame.ClipsDescendants = true
     ModuleFrame.Parent = parent
@@ -27,7 +27,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     MainStroke.Thickness = 1
     MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    -- Nagłówek (Header) - Klikalny (Prawy/Lewy)
+    -- Nagłówek (Header)
     local Header = Instance.new("TextButton")
     Header.Name = "Header"
     Header.Size = UDim2.new(1, 0, 0, 45)
@@ -59,13 +59,13 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     Label.BackgroundTransparency = 1
     Label.Parent = Header
 
-    -- Przycisk Bind (3 kropki)
+    -- Przycisk Bind
     local BindBtn = Instance.new("TextButton")
     BindBtn.Name = "Bind"
     BindBtn.Size = UDim2.new(0, 24, 0, 24)
     BindBtn.Position = UDim2.new(1, -50, 0.5, 0)
     BindBtn.AnchorPoint = Vector2.new(1, 0.5)
-    BindBtn.BackgroundColor3 = Colors.Stroke -- Tło przycisku bind
+    BindBtn.BackgroundColor3 = Colors.Stroke
     BindBtn.Text = "..."
     BindBtn.TextColor3 = Colors.TextDim
     BindBtn.Font = Enum.Font.GothamBold
@@ -73,16 +73,16 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     BindBtn.Parent = Header
     Instance.new("UICorner", BindBtn).CornerRadius = UDim.new(0, 4)
 
-    -- Główny Toggle (Switch)
+    -- Toggle
     local ToggleBtn = Instance.new("TextButton")
     ToggleBtn.Name = "Toggle"
     ToggleBtn.Size = UDim2.new(0, 36, 0, 20)
     ToggleBtn.Position = UDim2.new(1, -10, 0.5, 0)
     ToggleBtn.AnchorPoint = Vector2.new(1, 0.5)
-    ToggleBtn.BackgroundColor3 = Colors.Stroke -- Nieaktywny
+    ToggleBtn.BackgroundColor3 = Colors.Stroke
     ToggleBtn.Text = ""
     ToggleBtn.Parent = Header
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0) -- Pill shape
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
 
     local ToggleCircle = Instance.new("Frame")
     ToggleCircle.Size = UDim2.new(0, 16, 0, 16)
@@ -92,7 +92,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     ToggleCircle.Parent = ToggleBtn
     Instance.new("UICorner", ToggleCircle).CornerRadius = UDim.new(1, 0)
 
-    -- Kontener Content (Ukryty)
+    -- Kontener Content (Opcje)
     local Content = Instance.new("Frame")
     Content.Name = "Content"
     Content.Size = UDim2.new(1, 0, 0, 0)
@@ -103,7 +103,7 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
 
     local ContentLayout = Instance.new("UIListLayout")
     ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    ContentLayout.Padding = UDim.new(0, 8)
+    ContentLayout.Padding = UDim.new(0, 5) -- Mniejszy padding między opcjami
     ContentLayout.Parent = Content
 
     local ContentPadding = Instance.new("UIPadding")
@@ -113,24 +113,21 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     ContentPadding.PaddingRight = UDim.new(0, 10)
     ContentPadding.Parent = Content
 
-    -- ZMIENNE STANU
+    -- Zmienne stanu
     local Enabled = options.Default or false
     local Keybind = nil
     local Binding = false
 
-    -- Wczytywanie Configu
+    -- Config
     if options.Flag and menuConfig[options.Flag] ~= nil then
         Enabled = menuConfig[options.Flag]
     end
     if options.Flag and menuConfig[options.Flag .. "_Bind"] then
         local bindName = menuConfig[options.Flag .. "_Bind"]
-        if bindName then
-            pcall(function() Keybind = Enum.KeyCode[bindName] end)
-            if Keybind then BindBtn.Text = Keybind.Name:sub(1, 3) end
-        end
+        if bindName then pcall(function() Keybind = Enum.KeyCode[bindName] end) end
+        if Keybind then BindBtn.Text = Keybind.Name:sub(1, 3) end
     end
 
-    -- FUNKCJA AKTUALIZACJI STANU
     local function UpdateState()
         if Enabled then
             TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Accent}):Play()
@@ -144,23 +141,15 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     end
 
     local function ToggleModule(forceState)
-        if forceState ~= nil then
-            Enabled = forceState
-        else
-            Enabled = not Enabled
-        end
-
+        if forceState ~= nil then Enabled = forceState else Enabled = not Enabled end
         UpdateState()
-
         if options.Flag then saveMenuConfig(options.Flag, Enabled) end
         if options.Callback then options.Callback(Enabled) end
     end
 
-    -- OBSŁUGA KLIKNIĘĆ
     ToggleBtn.MouseButton1Click:Connect(function() ToggleModule() end)
     Header.MouseButton1Click:Connect(function() ToggleModule() end)
 
-    -- OBSŁUGA BINDOWANIA
     BindBtn.MouseButton1Click:Connect(function()
         Binding = true
         BindBtn.Text = "?"
@@ -168,85 +157,109 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     end)
 
     UserInputService.InputBegan:Connect(function(input, gpe)
-        if Binding then
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                if input.KeyCode == Enum.KeyCode.Backspace then
-                    Keybind = nil
-                    BindBtn.Text = "..."
-                else
-                    Keybind = input.KeyCode
-                    BindBtn.Text = input.KeyCode.Name:sub(1, 3)
-                end
-
-                Binding = false
-                BindBtn.TextColor3 = Colors.TextDim
-
-                if options.Flag then
-                    saveMenuConfig(options.Flag .. "_Bind", Keybind and Keybind.Name or nil)
-                end
+        if Binding and input.UserInputType == Enum.UserInputType.Keyboard then
+            if input.KeyCode == Enum.KeyCode.Backspace then
+                Keybind = nil
+                BindBtn.Text = "..."
+            else
+                Keybind = input.KeyCode
+                BindBtn.Text = input.KeyCode.Name:sub(1, 3)
             end
+            Binding = false
+            BindBtn.TextColor3 = Colors.TextDim
+            if options.Flag then saveMenuConfig(options.Flag .. "_Bind", Keybind and Keybind.Name or nil) end
         elseif not gpe and Keybind and input.KeyCode == Keybind then
             ToggleModule()
         end
     end)
 
-    -- LOGIKA ROZWIJANIA (Prawy Klik)
+    -- Logika Rozwijania (Prawy Klik)
     local Expanded = false
-    Header.MouseButton2Click:Connect(function()
-        Expanded = not Expanded
 
-        local targetHeight = 45
+    local function UpdateHeight()
         if Expanded then
-            targetHeight = 45 + ContentLayout.AbsoluteContentSize.Y + 20
-        end
+            -- Obliczamy wysokość na podstawie zawartości
+            local contentHeight = ContentLayout.AbsoluteContentSize.Y
+            local padding = ContentPadding.PaddingTop.Offset + ContentPadding.PaddingBottom.Offset
+            local totalHeight = 45 + contentHeight + padding
 
-        TweenService:Create(ModuleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0.5, -5, 0, targetHeight)
-        }):Play()
-    end)
-
-    ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        if Expanded then
-            local targetHeight = 45 + ContentLayout.AbsoluteContentSize.Y + 20
-            TweenService:Create(ModuleFrame, TweenInfo.new(0.1), {
-                Size = UDim2.new(0.5, -5, 0, targetHeight)
+            TweenService:Create(ModuleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0.5, -5, 0, totalHeight)
+            }):Play()
+        else
+            TweenService:Create(ModuleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0.5, -5, 0, 45)
             }):Play()
         end
+    end
+
+    Header.MouseButton2Click:Connect(function()
+        Expanded = not Expanded
+        UpdateHeight()
     end)
 
-    UpdateState() -- Inicjalizacja stanu wizualnego
+    -- Nasłuchiwanie zmian w zawartości (gdy dodajemy elementy)
+    ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        if Expanded then UpdateHeight() end
+    end)
+
+    UpdateState()
 
     -- API MODUŁU
     local ModuleAPI = {}
 
+    -- Funkcja pomocnicza do ładowania elementów
+    local function LoadElement(name)
+        local url = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/" .. name .. ".lua"
+        local success, result = pcall(function() return game:HttpGet(url) end)
+        if not success then warn("Failed to fetch element: " .. name) return nil end
+
+        local func = loadstring(result)
+        if not func then warn("Failed to loadstring element: " .. name) return nil end
+
+        return func() -- Wywołanie loadstring zwraca funkcję konstruktora
+    end
+
     function ModuleAPI:AddSlider(subOptions)
-        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Slider.lua"))()
-        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local constructor = LoadElement("Slider")
+        if constructor then
+            return constructor(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        end
     end
 
     function ModuleAPI:AddToggle(subOptions)
-        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Toggle.lua"))()
-        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local constructor = LoadElement("Toggle")
+        if constructor then
+            return constructor(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        end
     end
 
     function ModuleAPI:AddDropdown(subOptions)
-        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Dropdown.lua"))()
-        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local constructor = LoadElement("Dropdown")
+        if constructor then
+            return constructor(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        end
     end
 
     function ModuleAPI:AddInput(subOptions)
-        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Input.lua"))()
-        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local constructor = LoadElement("Input")
+        if constructor then
+            return constructor(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        end
     end
 
     function ModuleAPI:AddColorPicker(subOptions)
-        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/ColorPicker.lua"))()
-        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local constructor = LoadElement("ColorPicker")
+        if constructor then
+            return constructor(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        end
     end
 
     function ModuleAPI:AddButton(subOptions)
-        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Button.lua"))()
-        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local constructor = LoadElement("Button")
+        if constructor then
+            return constructor(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        end
     end
 
     return ModuleAPI
