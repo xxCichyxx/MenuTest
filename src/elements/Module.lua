@@ -73,35 +73,6 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     BindBtn.Parent = Header
     Instance.new("UICorner", BindBtn).CornerRadius = UDim.new(0, 4)
 
-    -- Logika Bindowania
-    local Binding = false
-    local Keybind = options.Keybind or nil
-
-    BindBtn.MouseButton1Click:Connect(function()
-        Binding = true
-        BindBtn.Text = "?"
-        BindBtn.TextColor3 = Colors.Accent
-    end)
-
-    UserInputService.InputBegan:Connect(function(input)
-        if Binding and input.UserInputType == Enum.UserInputType.Keyboard then
-            if input.KeyCode == Enum.KeyCode.Backspace then
-                Keybind = nil
-                BindBtn.Text = "..."
-            else
-                Keybind = input.KeyCode
-                BindBtn.Text = input.KeyCode.Name:sub(1, 3) -- Skrócona nazwa
-            end
-            Binding = false
-            BindBtn.TextColor3 = Colors.TextDim
-            -- Zapisz bind do configu
-            if options.Flag then saveMenuConfig(options.Flag .. "_Bind", Keybind and Keybind.Name or nil) end
-        elseif not Binding and Keybind and input.KeyCode == Keybind then
-            -- Aktywacja modułu klawiszem
-            -- (Tutaj wywołujemy logikę toggle)
-        end
-    end)
-
     -- Główny Toggle (Switch)
     local ToggleBtn = Instance.new("TextButton")
     ToggleBtn.Name = "Toggle"
@@ -120,41 +91,6 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     ToggleCircle.BackgroundColor3 = Colors.Text
     ToggleCircle.Parent = ToggleBtn
     Instance.new("UICorner", ToggleCircle).CornerRadius = UDim.new(1, 0)
-
-    -- Logika Toggle
-    local Enabled = options.Default or false
-    if options.Flag and menuConfig[options.Flag] ~= nil then
-        Enabled = menuConfig[options.Flag]
-    end
-
-    local function UpdateState()
-        if Enabled then
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Accent}):Play()
-            ToggleCircle:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)
-            Label.TextColor3 = Colors.Text -- Tekst biały
-        else
-            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Stroke}):Play()
-            ToggleCircle:TweenPosition(UDim2.new(0, 2, 0.5, 0), "Out", "Quart", 0.2, true)
-            Label.TextColor3 = Colors.TextDim -- Tekst przygaszony
-        end
-    end
-
-    ToggleBtn.MouseButton1Click:Connect(function()
-        Enabled = not Enabled
-        UpdateState()
-        if options.Flag then saveMenuConfig(options.Flag, Enabled) end
-        if options.Callback then options.Callback(Enabled) end
-    end)
-
-    -- Kliknięcie w nagłówek (Lewy) też przełącza
-    Header.MouseButton1Click:Connect(function()
-        Enabled = not Enabled
-        UpdateState()
-        if options.Flag then saveMenuConfig(options.Flag, Enabled) end
-        if options.Callback then options.Callback(Enabled) end
-    end)
-
-    UpdateState()
 
     -- Kontener Content (Ukryty)
     local Content = Instance.new("Frame")
@@ -177,14 +113,91 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     ContentPadding.PaddingRight = UDim.new(0, 10)
     ContentPadding.Parent = Content
 
-    -- Logika Rozwijania (Prawy Klik)
+    -- ZMIENNE STANU
+    local Enabled = options.Default or false
+    local Keybind = nil
+    local Binding = false
+
+    -- Wczytywanie Configu
+    if options.Flag and menuConfig[options.Flag] ~= nil then
+        Enabled = menuConfig[options.Flag]
+    end
+    if options.Flag and menuConfig[options.Flag .. "_Bind"] then
+        local bindName = menuConfig[options.Flag .. "_Bind"]
+        if bindName then
+            pcall(function() Keybind = Enum.KeyCode[bindName] end)
+            if Keybind then BindBtn.Text = Keybind.Name:sub(1, 3) end
+        end
+    end
+
+    -- FUNKCJA AKTUALIZACJI STANU
+    local function UpdateState()
+        if Enabled then
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Accent}):Play()
+            ToggleCircle:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)
+            Label.TextColor3 = Colors.Text
+        else
+            TweenService:Create(ToggleBtn, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Stroke}):Play()
+            ToggleCircle:TweenPosition(UDim2.new(0, 2, 0.5, 0), "Out", "Quart", 0.2, true)
+            Label.TextColor3 = Colors.TextDim
+        end
+    end
+
+    local function ToggleModule(forceState)
+        if forceState ~= nil then
+            Enabled = forceState
+        else
+            Enabled = not Enabled
+        end
+
+        UpdateState()
+
+        if options.Flag then saveMenuConfig(options.Flag, Enabled) end
+        if options.Callback then options.Callback(Enabled) end
+    end
+
+    -- OBSŁUGA KLIKNIĘĆ
+    ToggleBtn.MouseButton1Click:Connect(function() ToggleModule() end)
+    Header.MouseButton1Click:Connect(function() ToggleModule() end)
+
+    -- OBSŁUGA BINDOWANIA
+    BindBtn.MouseButton1Click:Connect(function()
+        Binding = true
+        BindBtn.Text = "?"
+        BindBtn.TextColor3 = Colors.Accent
+    end)
+
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if Binding then
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                if input.KeyCode == Enum.KeyCode.Backspace then
+                    Keybind = nil
+                    BindBtn.Text = "..."
+                else
+                    Keybind = input.KeyCode
+                    BindBtn.Text = input.KeyCode.Name:sub(1, 3)
+                end
+
+                Binding = false
+                BindBtn.TextColor3 = Colors.TextDim
+
+                if options.Flag then
+                    saveMenuConfig(options.Flag .. "_Bind", Keybind and Keybind.Name or nil)
+                end
+            end
+        elseif not gpe and Keybind and input.KeyCode == Keybind then
+            ToggleModule()
+        end
+    end)
+
+    -- LOGIKA ROZWIJANIA (Prawy Klik)
     local Expanded = false
     Header.MouseButton2Click:Connect(function()
         Expanded = not Expanded
 
         local targetHeight = 45
         if Expanded then
-            targetHeight = 45 + ContentLayout.AbsoluteContentSize.Y + 20 -- + paddingi
+            targetHeight = 45 + ContentLayout.AbsoluteContentSize.Y + 20
         end
 
         TweenService:Create(ModuleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
@@ -192,7 +205,6 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         }):Play()
     end)
 
-    -- Auto-resize przy dodawaniu elementów
     ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         if Expanded then
             local targetHeight = 45 + ContentLayout.AbsoluteContentSize.Y + 20
@@ -202,39 +214,39 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         end
     end)
 
-    -- API Modułu
+    UpdateState() -- Inicjalizacja stanu wizualnego
+
+    -- API MODUŁU
     local ModuleAPI = {}
 
-    -- Ładowanie sub-elementów
-    local SliderElement = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Slider.lua"))()
-    local ToggleElement = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Toggle.lua"))()
-    local DropdownElement = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Dropdown.lua"))()
-    local InputElement = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Input.lua"))()
-    local ColorPickerElement = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/ColorPicker.lua"))()
-    local ButtonElement = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Button.lua"))()
-
     function ModuleAPI:AddSlider(subOptions)
-        return SliderElement(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Slider.lua"))()
+        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
     end
 
     function ModuleAPI:AddToggle(subOptions)
-        return ToggleElement(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Toggle.lua"))()
+        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
     end
 
     function ModuleAPI:AddDropdown(subOptions)
-        return DropdownElement(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Dropdown.lua"))()
+        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
     end
 
     function ModuleAPI:AddInput(subOptions)
-        return InputElement(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Input.lua"))()
+        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
     end
 
     function ModuleAPI:AddColorPicker(subOptions)
-        return ColorPickerElement(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/ColorPicker.lua"))()
+        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
     end
 
     function ModuleAPI:AddButton(subOptions)
-        return ButtonElement(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
+        local func = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/elements/Button.lua"))()
+        return func(subOptions, themeManager, Content, menuConfig, saveMenuConfig)
     end
 
     return ModuleAPI
