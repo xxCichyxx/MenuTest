@@ -1,84 +1,73 @@
 return function(options, themeManager, parent, menuConfig, saveMenuConfig)
-    local ToggleFrame = Instance.new("Frame")
+    local TweenService = game:GetService("TweenService")
+
+    local Colors = {
+        Stroke = Color3.fromRGB(31, 31, 38),
+        Accent = Color3.fromRGB(120, 100, 255),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDim = Color3.fromRGB(150, 150, 160)
+    }
+
+    local ToggleFrame = Instance.new("TextButton")
     ToggleFrame.Name = options.Name or "Toggle"
-    ToggleFrame.Size = UDim2.new(0.5, -5, 0, 35)
+    ToggleFrame.Size = UDim2.new(1, 0, 0, 30)
     ToggleFrame.BackgroundTransparency = 1
+    ToggleFrame.Text = ""
     ToggleFrame.Parent = parent
 
-    local ToggleBtn = Instance.new("TextButton")
-    ToggleBtn.Name = "ToggleBtn"
-    ToggleBtn.Size = UDim2.new(1, 0, 1, 0)
-    ToggleBtn.Text = ""
-    ToggleBtn.Parent = ToggleFrame
-    themeManager:Register(ToggleBtn, "BackgroundColor3", "Secondary")
-
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
-    local Stroke = Instance.new("UIStroke", ToggleBtn)
-    Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    themeManager:Register(Stroke, "Color", "Accent")
-
     local Label = Instance.new("TextLabel")
-    Label.Name = "Label"
     Label.Text = options.Name or "Toggle"
-    Label.Font = Enum.Font.Gotham
-    Label.TextSize = 14
+    Label.Font = Enum.Font.GothamMedium
+    Label.TextSize = 12
+    Label.TextColor3 = Colors.TextDim
     Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Position = UDim2.new(0, 10, 0, 0)
     Label.Size = UDim2.new(1, -50, 1, 0)
     Label.BackgroundTransparency = 1
-    Label.Parent = ToggleBtn
-    themeManager:Register(Label, "TextColor3", "Text")
+    Label.Parent = ToggleFrame
 
-    local ToggleSwitch = Instance.new("Frame")
-    ToggleSwitch.Name = "Switch"
-    ToggleSwitch.Size = UDim2.new(0, 40, 0, 20)
-    ToggleSwitch.Position = UDim2.new(1, -50, 0.5, 0)
-    ToggleSwitch.AnchorPoint = Vector2.new(0, 0.5)
-    ToggleSwitch.Parent = ToggleBtn
-    themeManager:Register(ToggleSwitch, "BackgroundColor3", "Accent2")
-    Instance.new("UICorner", ToggleSwitch).CornerRadius = UDim.new(1, 0)
+    local Switch = Instance.new("Frame")
+    Switch.Size = UDim2.new(0, 36, 0, 20)
+    Switch.Position = UDim2.new(1, 0, 0.5, 0)
+    Switch.AnchorPoint = Vector2.new(1, 0.5)
+    Switch.BackgroundColor3 = Colors.Stroke
+    Switch.Parent = ToggleFrame
+    Instance.new("UICorner", Switch).CornerRadius = UDim.new(1, 0)
 
-    local Circle = Instance.new("Frame")
-    Circle.Name = "Circle"
-    Circle.Size = UDim2.new(0, 16, 0, 16)
-    Circle.Position = UDim2.new(0, 2, 0.5, 0)
-    Circle.AnchorPoint = Vector2.new(0, 0.5)
-    Circle.Parent = ToggleSwitch
-    themeManager:Register(Circle, "BackgroundColor3", "Text")
-    Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
+    local Knob = Instance.new("Frame")
+    Knob.Size = UDim2.new(0, 16, 0, 16)
+    Knob.Position = UDim2.new(0, 2, 0.5, 0)
+    Knob.AnchorPoint = Vector2.new(0, 0.5)
+    Knob.BackgroundColor3 = Colors.Text
+    Knob.Parent = Switch
+    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
 
     local Value = options.CurrentValue or false
     if options.Flag and menuConfig[options.Flag] ~= nil then
         Value = menuConfig[options.Flag]
     end
 
-    local function UpdateState()
+    local function Update()
         if Value then
-            ToggleSwitch.BackgroundColor3 = Color3.fromRGB(unpack(themeManager.CurrentTheme.Success))
-            Circle:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)
+            TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Accent}):Play()
+            Knob:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)
+            Label.TextColor3 = Colors.Text
         else
-            ToggleSwitch.BackgroundColor3 = Color3.fromRGB(unpack(themeManager.CurrentTheme.Accent2))
-            Circle:TweenPosition(UDim2.new(0, 2, 0.5, 0), "Out", "Quart", 0.2, true)
+            TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Stroke}):Play()
+            Knob:TweenPosition(UDim2.new(0, 2, 0.5, 0), "Out", "Quart", 0.2, true)
+            Label.TextColor3 = Colors.TextDim
         end
     end
 
-    ToggleBtn.MouseButton1Click:Connect(function()
+    ToggleFrame.MouseButton1Click:Connect(function()
         Value = not Value
-        UpdateState()
-        if options.Flag then saveMenuConfig(options.Flag, Value) end
+        Update()
         if options.Callback then options.Callback(Value) end
+        if options.Flag then saveMenuConfig(options.Flag, Value) end
     end)
 
-    UpdateState()
-    if options.Callback then options.Callback(Value) end -- Wywołaj callback przy starcie
+    Update()
 
     local API = {}
-    function API:Set(newValue)
-        Value = newValue
-        UpdateState()
-        if options.Flag then saveMenuConfig(options.Flag, Value) end
-        if options.Callback then options.Callback(Value) end
-    end
-
+    function API:Set(val) Value = val Update() end
     return API
 end

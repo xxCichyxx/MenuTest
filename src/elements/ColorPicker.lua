@@ -1,30 +1,27 @@
 return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     local ColorPickerFrame = Instance.new("Frame")
     ColorPickerFrame.Name = options.Name or "ColorPicker"
-    ColorPickerFrame.Size = UDim2.new(0.5, -5, 0, 35)
+    ColorPickerFrame.Size = UDim2.new(1, 0, 0, 35)
     ColorPickerFrame.BackgroundTransparency = 1
     ColorPickerFrame.Parent = parent
 
     local Main = Instance.new("TextButton")
     Main.Size = UDim2.new(1, 0, 1, 0)
+    Main.BackgroundColor3 = Color3.fromRGB(31, 31, 38)
     Main.Text = ""
     Main.Parent = ColorPickerFrame
-    themeManager:Register(Main, "BackgroundColor3", "Secondary")
     Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 6)
-    local Stroke = Instance.new("UIStroke", Main)
-    Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    themeManager:Register(Stroke, "Color", "Accent")
 
     local Label = Instance.new("TextLabel")
     Label.Text = options.Name or "Color Picker"
-    Label.Font = Enum.Font.Gotham
-    Label.TextSize = 14
+    Label.Font = Enum.Font.GothamMedium
+    Label.TextSize = 12
+    Label.TextColor3 = Color3.fromRGB(150, 150, 160)
     Label.TextXAlignment = Enum.TextXAlignment.Left
     Label.Size = UDim2.new(1, -50, 1, 0)
     Label.Position = UDim2.new(0, 10, 0, 0)
     Label.BackgroundTransparency = 1
     Label.Parent = Main
-    themeManager:Register(Label, "TextColor3", "Text")
 
     local ColorPreview = Instance.new("Frame")
     ColorPreview.Size = UDim2.new(0, 40, 0, 20)
@@ -40,9 +37,8 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     end
     ColorPreview.BackgroundColor3 = CurrentColor
 
-    -- TODO: Pełne okno wyboru koloru (HSV)
-    -- Na razie symulacja: kliknięcie losuje kolor (placeholder)
     Main.MouseButton1Click:Connect(function()
+        -- Placeholder: Losowy kolor
         CurrentColor = Color3.fromHSV(math.random(), 1, 1)
         ColorPreview.BackgroundColor3 = CurrentColor
         if options.Callback then options.Callback(CurrentColor) end
@@ -51,10 +47,5 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         end
     end)
 
-    local API = {}
-    function API:Set(newColor)
-        CurrentColor = newColor
-        ColorPreview.BackgroundColor3 = CurrentColor
-    end
-    return API
+    return {}
 end

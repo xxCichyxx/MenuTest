@@ -162,14 +162,14 @@ function MenuLib:CreateWindow(options)
     local SliderElement = loadstring(game:HttpGet(baseUrl .. "elements/Slider.lua"))()
     local InputElement = loadstring(game:HttpGet(baseUrl .. "elements/Input.lua"))()
     local DropdownElement = loadstring(game:HttpGet(baseUrl .. "elements/Dropdown.lua"))()
-    local ModuleElement = loadstring(game:HttpGet(baseUrl .. "elements/Module.lua"))() -- DODANO
+    local ModuleElement = loadstring(game:HttpGet(baseUrl .. "elements/Module.lua"))()
 
     function WindowAPI:CreateTab(name, icon, order)
         local TabElements = UI:CreateTab(name, icon or "layers", order or userTabCounter)
         if not order then userTabCounter = userTabCounter + 1 end
 
         local GridLayout = Instance.new("UIGridLayout")
-        GridLayout.CellSize = UDim2.new(0.5, -5, 0, 35)
+        GridLayout.CellSize = UDim2.new(0.5, -5, 0, 45) -- Zwiększono wysokość dla modułów
         GridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
         GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
         GridLayout.Parent = TabElements.Page
@@ -201,7 +201,7 @@ function MenuLib:CreateWindow(options)
             return DropdownElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
         end
 
-        function TabAPI:CreateModule(options) -- DODANO
+        function TabAPI:CreateModule(options)
             return ModuleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig)
         end
 
