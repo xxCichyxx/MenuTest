@@ -1,4 +1,6 @@
 return function(options, themeManager, parent, menuConfig, saveMenuConfig)
+    local TweenService = game:GetService("TweenService")
+    local RunService = game:GetService("RunService")
     local Icons = loadstring(game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/Icons.lua"))()
 
     local Colors = {
@@ -47,22 +49,31 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     Icon.Parent = Main
     Icons:Apply(Icon, "chevron-down")
 
-    -- Lista
+    -- Lista (W ScreenGui)
+    local ScreenGui = parent:FindFirstAncestorOfClass("ScreenGui")
+
     local List = Instance.new("Frame")
-    List.Size = UDim2.new(1, 0, 0, 0)
-    List.Position = UDim2.new(0, 0, 1, 5)
+    List.Name = "DropdownList"
+    List.Size = UDim2.new(0, 200, 0, 0) -- Szerokość zostanie zaktualizowana
     List.BackgroundColor3 = Colors.Background
     List.Visible = false
-    List.ZIndex = 5
-    List.Parent = DropdownFrame
+    List.ZIndex = 100 -- Bardzo wysoki ZIndex
+    List.Parent = ScreenGui -- Przypinamy do ScreenGui
 
     Instance.new("UICorner", List).CornerRadius = UDim.new(0, 6)
     local ListStroke = Instance.new("UIStroke", List)
     ListStroke.Color = Colors.Stroke
 
+    local Scroll = Instance.new("ScrollingFrame")
+    Scroll.Size = UDim2.new(1, 0, 1, 0)
+    Scroll.BackgroundTransparency = 1
+    Scroll.BorderSizePixel = 0
+    Scroll.ScrollBarThickness = 2
+    Scroll.Parent = List
+
     local ListLayout = Instance.new("UIListLayout")
     ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    ListLayout.Parent = List
+    ListLayout.Parent = Scroll
 
     local Options = options.Options or {}
     local CurrentOption = options.CurrentOption or {Options[1]}
@@ -76,42 +87,74 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     UpdateLabel()
 
     local isOpen = false
-    Main.MouseButton1Click:Connect(function()
+
+    local function Toggle()
         isOpen = not isOpen
         List.Visible = isOpen
+
         if isOpen then
             Icons:Apply(Icon, "chevron-up")
-            local height = #Options * 30
-            List.Size = UDim2.new(1, 0, 0, height)
-            DropdownFrame.Size = UDim2.new(1, 0, 0, 35 + height + 5)
+
+            -- Pozycjonowanie
+            local absPos = Main.AbsolutePosition
+            local absSize = Main.AbsoluteSize
+            List.Position = UDim2.new(0, absPos.X, 0, absPos.Y + absSize.Y + 5)
+            List.Size = UDim2.new(0, absSize.X, 0, math.min(#Options * 30, 150))
+            Scroll.CanvasSize = UDim2.new(0, 0, 0, #Options * 30)
         else
             Icons:Apply(Icon, "chevron-down")
-            DropdownFrame.Size = UDim2.new(1, 0, 0, 35)
+        end
+    end
+
+    Main.MouseButton1Click:Connect(Toggle)
+
+    -- Aktualizacja pozycji przy scrollowaniu menu
+    RunService.RenderStepped:Connect(function()
+        if isOpen and Main.Parent then
+            local absPos = Main.AbsolutePosition
+            local absSize = Main.AbsoluteSize
+            List.Position = UDim2.new(0, absPos.X, 0, absPos.Y + absSize.Y + 5)
+        elseif isOpen and not Main.Parent then
+            Toggle() -- Zamknij jeśli rodzic zniknął
         end
     end)
 
-    for _, opt in ipairs(Options) do
-        local Item = Instance.new("TextButton")
-        Item.Size = UDim2.new(1, 0, 0, 30)
-        Item.BackgroundTransparency = 1
-        Item.Text = "   " .. opt
-        Item.Font = Enum.Font.Gotham
-        Item.TextSize = 12
-        Item.TextColor3 = Colors.TextDim
-        Item.TextXAlignment = Enum.TextXAlignment.Left
-        Item.Parent = List
+    local function RefreshList()
+        for _, child in pairs(Scroll:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
 
-        Item.MouseButton1Click:Connect(function()
-            CurrentOption = {opt}
-            UpdateLabel()
-            isOpen = false
-            List.Visible = false
-            Icons:Apply(Icon, "chevron-down")
-            DropdownFrame.Size = UDim2.new(1, 0, 0, 35)
-            if options.Callback then options.Callback(CurrentOption) end
-            if options.Flag then saveMenuConfig(options.Flag, CurrentOption) end
-        end)
+        for _, opt in ipairs(Options) do
+            local Item = Instance.new("TextButton")
+            Item.Size = UDim2.new(1, 0, 0, 30)
+            Item.BackgroundTransparency = 1
+            Item.Text = "   " .. opt
+            Item.Font = Enum.Font.Gotham
+            Item.TextSize = 12
+            Item.TextColor3 = Colors.TextDim
+            Item.TextXAlignment = Enum.TextXAlignment.Left
+            Item.Parent = Scroll
+
+            local isSelected = false
+            for _, s in ipairs(CurrentOption) do if s == opt then isSelected = true break end end
+            if isSelected then Item.TextColor3 = Colors.Accent end
+
+            Item.MouseButton1Click:Connect(function()
+                if not options.MultipleOptions then
+                    CurrentOption = {opt}
+                    UpdateLabel()
+                    Toggle()
+                    if options.Callback then options.Callback(CurrentOption) end
+                    if options.Flag then saveMenuConfig(options.Flag, CurrentOption) end
+                end
+                RefreshList()
+            end)
+        end
     end
+    RefreshList()
 
-    return {}
+    local API = {}
+    function API:Refresh(newOptions) Options = newOptions RefreshList() end
+    function API:Set(newOption) CurrentOption = newOption UpdateLabel() RefreshList() end
+    return API
 end

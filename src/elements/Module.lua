@@ -19,10 +19,9 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         TextDim = Color3.fromRGB(150, 150, 160)
     }
 
-    -- Główny kontener modułu
     local ModuleFrame = Instance.new("Frame")
     ModuleFrame.Name = options.Name or "Module"
-    ModuleFrame.Size = UDim2.new(0.5, -5, 0, 50)
+    ModuleFrame.Size = UDim2.new(0, 220, 0, 50) -- Stała szerokość dla Gridu
     ModuleFrame.BackgroundColor3 = Colors.Background
     ModuleFrame.ClipsDescendants = true
     ModuleFrame.Parent = parent
@@ -35,23 +34,20 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     MainStroke.Thickness = 1
     MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    -- Header (Nagłówek)
     local Header = Instance.new("Frame")
     Header.Name = "Header"
     Header.Size = UDim2.new(1, 0, 0, 50)
     Header.BackgroundTransparency = 1
     Header.Parent = ModuleFrame
 
-    -- Przycisk Główny (Obsługuje Lewy i Prawy Klik)
     local ClickBtn = Instance.new("TextButton")
     ClickBtn.Name = "ClickBtn"
-    ClickBtn.Size = UDim2.new(1, -100, 1, 0) -- Zostawiamy miejsce na Bind i Toggle
+    ClickBtn.Size = UDim2.new(1, -100, 1, 0)
     ClickBtn.BackgroundTransparency = 1
     ClickBtn.Text = ""
     ClickBtn.Parent = Header
     ClickBtn.ZIndex = 10
 
-    -- Ikona
     if options.Icon then
         local Icon = Instance.new("ImageLabel")
         Icon.Size = UDim2.new(0, 22, 0, 22)
@@ -63,7 +59,6 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         Icons:Apply(Icon, options.Icon)
     end
 
-    -- Nazwa
     local Label = Instance.new("TextLabel")
     Label.Text = options.Name or "Module"
     Label.Font = Enum.Font.GothamMedium
@@ -75,7 +70,6 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     Label.BackgroundTransparency = 1
     Label.Parent = Header
 
-    -- Przycisk Bind (3 kropki)
     local BindBtn = Instance.new("TextButton")
     BindBtn.Name = "Bind"
     BindBtn.Size = UDim2.new(0, 24, 0, 24)
@@ -90,7 +84,6 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     BindBtn.Parent = Header
     Instance.new("UICorner", BindBtn).CornerRadius = UDim.new(0, 4)
 
-    -- Toggle Switch (Prawy Górny)
     local ToggleContainer = Instance.new("TextButton")
     ToggleContainer.Name = "Toggle"
     ToggleContainer.Size = UDim2.new(0, 40, 0, 20)
@@ -110,7 +103,6 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     ToggleCircle.Parent = ToggleContainer
     Instance.new("UICorner", ToggleCircle).CornerRadius = UDim.new(1, 0)
 
-    -- Kontener Content (Opcje)
     local Content = Instance.new("Frame")
     Content.Name = "Content"
     Content.Position = UDim2.new(0, 0, 0, 50)
@@ -132,13 +124,11 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     ContentPadding.PaddingBottom = UDim.new(0, 12)
     ContentPadding.Parent = Content
 
-    -- Stan i Logika
     local Enabled = options.Default or false
     local Expanded = false
     local Keybind = nil
     local Binding = false
 
-    -- Config
     if options.Flag and menuConfig[options.Flag] ~= nil then
         Enabled = menuConfig[options.Flag]
     end
@@ -149,6 +139,9 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     end
 
     local function UpdateVisuals(instant)
+        -- FIX: Sprawdzamy czy obiekt jest w drzewie gry przed użyciem TweenService
+        if not ModuleFrame.Parent then instant = true end
+
         if Enabled then
             if instant then
                 ToggleContainer.BackgroundColor3 = Colors.Accent
@@ -174,12 +167,11 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
 
     local function ToggleModule(forceState)
         if forceState ~= nil then Enabled = forceState else Enabled = not Enabled end
-        UpdateVisuals(false) -- Użyj tweena przy interakcji
+        UpdateVisuals(false)
         if options.Flag then saveMenuConfig(options.Flag, Enabled) end
         if options.Callback then options.Callback(Enabled) end
     end
 
-    -- Obsługa kliknięć
     ClickBtn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             ToggleModule()
@@ -189,14 +181,13 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
 
             local targetHeight = Expanded and (50 + ContentLayout.AbsoluteContentSize.Y + 20) or 50
             TweenService:Create(ModuleFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                Size = UDim2.new(0.5, -5, 0, targetHeight)
+                Size = UDim2.new(0, 220, 0, targetHeight) -- Stała szerokość 220
             }):Play()
         end
     end)
 
     ToggleContainer.MouseButton1Click:Connect(function() ToggleModule() end)
 
-    -- Obsługa Bindowania
     BindBtn.MouseButton1Click:Connect(function()
         Binding = true
         BindBtn.Text = "?"
@@ -220,17 +211,15 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         end
     end)
 
-    -- Auto-skalowanie
     ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         if Expanded then
             local targetHeight = 50 + ContentLayout.AbsoluteContentSize.Y + 20
-            ModuleFrame.Size = UDim2.new(0.5, -5, 0, targetHeight)
+            ModuleFrame.Size = UDim2.new(0, 220, 0, targetHeight)
         end
     end)
 
-    UpdateVisuals(true) -- Inicjalizacja natychmiastowa (bez tweena)
+    UpdateVisuals(true)
 
-    -- API
     local API = {}
     function API:AddSlider(opts) return SliderElement(opts, themeManager, Content, menuConfig, saveMenuConfig) end
     function API:AddToggle(opts) return ToggleElement(opts, themeManager, Content, menuConfig, saveMenuConfig) end

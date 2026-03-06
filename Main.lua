@@ -168,11 +168,16 @@ function MenuLib:CreateWindow(options)
         local TabElements = UI:CreateTab(name, icon or "layers", order or userTabCounter)
         if not order then userTabCounter = userTabCounter + 1 end
 
+        -- Ustawienie UIGridLayout dla elementów (Grid)
         local GridLayout = Instance.new("UIGridLayout")
-        GridLayout.CellSize = UDim2.new(0.5, -5, 0, 45) -- Zwiększono wysokość dla modułów
+        GridLayout.CellSize = UDim2.new(0, 220, 0, 50) -- Stała szerokość 220px
         GridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
         GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        GridLayout.FillDirection = Enum.FillDirection.Horizontal -- Wypełniaj poziomo
         GridLayout.Parent = TabElements.Page
+
+        -- Ważne: AutomaticCanvasSize dla scrollowania
+        TabElements.Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
         local TabAPI = {}
         TabAPI.Page = TabElements.Page
