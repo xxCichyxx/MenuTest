@@ -170,10 +170,11 @@ function MenuLib:CreateWindow(options)
 
         -- Ustawienie UIGridLayout dla elementów (Grid)
         local GridLayout = Instance.new("UIGridLayout")
-        GridLayout.CellSize = UDim2.new(0, 220, 0, 50) -- Stała szerokość 220px
-        GridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+        -- ZMIANA: Używamy skali (0.48), aby zmieścić dwa moduły obok siebie z odstępem
+        GridLayout.CellSize = UDim2.new(0.48, 0, 0, 50)
+        GridLayout.CellPadding = UDim2.new(0.02, 0, 0, 10) -- 2% odstępu poziomego
         GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        GridLayout.FillDirection = Enum.FillDirection.Horizontal -- Wypełniaj poziomo
+        GridLayout.FillDirection = Enum.FillDirection.Horizontal
         GridLayout.Parent = TabElements.Page
 
         -- Ważne: AutomaticCanvasSize dla scrollowania

@@ -1,48 +1,65 @@
 return function(options, themeManager, parent, menuConfig, saveMenuConfig)
     local UserInputService = game:GetService("UserInputService")
 
+    local Colors = {
+        Stroke = Color3.fromRGB(31, 31, 38),
+        Accent = Color3.fromRGB(120, 100, 255),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDim = Color3.fromRGB(150, 150, 160)
+    }
+
     local SliderFrame = Instance.new("Frame")
     SliderFrame.Name = options.Name or "Slider"
-    SliderFrame.Size = UDim2.new(1, 0, 0, 50) -- Wyższy kontener
+    SliderFrame.Size = UDim2.new(1, 0, 0, 45) -- Wysokość kontenera
     SliderFrame.BackgroundTransparency = 1
     SliderFrame.Parent = parent
 
-    -- Opis na górze
+    -- Opis (po lewej na górze)
     local Label = Instance.new("TextLabel")
     Label.Text = options.Name or "Slider"
-    Label.Font = Enum.Font.Gotham
-    Label.TextSize = 14
+    Label.Font = Enum.Font.GothamMedium
+    Label.TextSize = 12
+    Label.TextColor3 = Colors.TextDim
     Label.TextXAlignment = Enum.TextXAlignment.Left
-    Label.Size = UDim2.new(1, 0, 0, 20)
+    Label.Size = UDim2.new(0.5, 0, 0, 20)
     Label.Position = UDim2.new(0, 0, 0, 0)
     Label.BackgroundTransparency = 1
     Label.Parent = SliderFrame
-    themeManager:Register(Label, "TextColor3", "Text")
+
+    -- Wartość + Suffix (po prawej na górze)
+    local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Font = Enum.Font.GothamBold
+    ValueLabel.TextSize = 12
+    ValueLabel.TextColor3 = Colors.Text
+    ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+    ValueLabel.Size = UDim2.new(0.5, 0, 0, 20)
+    ValueLabel.Position = UDim2.new(0.5, 0, 0, 0)
+    ValueLabel.BackgroundTransparency = 1
+    ValueLabel.Parent = SliderFrame
 
     -- Tło suwaka (Grubsze)
     local SliderBar = Instance.new("Frame")
-    SliderBar.Size = UDim2.new(1, 0, 0, 20) -- Grubszy pasek (20px)
+    SliderBar.Size = UDim2.new(1, 0, 0, 12) -- Grubszy pasek (12px)
     SliderBar.Position = UDim2.new(0, 0, 0, 25)
+    SliderBar.BackgroundColor3 = Colors.Stroke
     SliderBar.Parent = SliderFrame
-    themeManager:Register(SliderBar, "BackgroundColor3", "Accent2")
-    Instance.new("UICorner", SliderBar).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", SliderBar).CornerRadius = UDim.new(1, 0)
 
     -- Wypełnienie
     local Fill = Instance.new("Frame")
     Fill.Size = UDim2.new(0, 0, 1, 0)
+    Fill.BackgroundColor3 = Colors.Accent
     Fill.Parent = SliderBar
-    themeManager:Register(Fill, "BackgroundColor3", "Accent")
-    Instance.new("UICorner", Fill).CornerRadius = UDim.new(0, 6)
+    Instance.new("UICorner", Fill).CornerRadius = UDim.new(1, 0)
 
-    -- Wartość pośrodku suwaka
-    local ValueLabel = Instance.new("TextLabel")
-    ValueLabel.Font = Enum.Font.GothamBold
-    ValueLabel.TextSize = 12
-    ValueLabel.Size = UDim2.new(1, 0, 1, 0)
-    ValueLabel.BackgroundTransparency = 1
-    ValueLabel.ZIndex = 2
-    ValueLabel.Parent = SliderBar
-    themeManager:Register(ValueLabel, "TextColor3", "Text")
+    -- Gałka (Knob)
+    local Knob = Instance.new("Frame")
+    Knob.Size = UDim2.new(0, 10, 0, 10)
+    Knob.Position = UDim2.new(1, 0, 0.5, 0)
+    Knob.AnchorPoint = Vector2.new(0.5, 0.5)
+    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Knob.Parent = Fill
+    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
 
     -- Logika
     local Min = options.Range[1]
