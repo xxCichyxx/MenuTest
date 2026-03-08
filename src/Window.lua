@@ -403,12 +403,9 @@ function Window:Create(config)
         Page.ScrollBarThickness = 4 -- ZMIANA: Widoczny pasek przewijania
         Page.Parent = UI.PagesContainer
 
-        local PageLayout = Instance.new("UIGridLayout", Page)
-        PageLayout.CellPadding = UDim2.new(0, 10, 0, 10) -- Zmienione z Padding na CellPadding
+        local PageLayout = Instance.new("UIListLayout", Page)
+        PageLayout.Padding = UDim.new(0, 10)
         PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        PageLayout.CellSize = UDim2.new(0, 220, 0, 50)
-        PageLayout.FillDirection = Enum.FillDirection.Horizontal
-        PageLayout.StartCorner = Enum.StartCorner.TopLeft
 
         local PagePadding = Instance.new("UIPadding", Page)
         PagePadding.PaddingLeft = UDim.new(0, 20)
@@ -447,6 +444,22 @@ function Window:Create(config)
 
         if #UI.Tabs == 1 then task.spawn(Select) end
         return {Button = TabButton, Page = Page}
+    end
+
+    function UI:CreateModuleGrid(parentPage)
+        local GridFrame = Instance.new("Frame")
+        GridFrame.Name = "ModuleGrid"
+        GridFrame.BackgroundTransparency = 1
+        GridFrame.Size = UDim2.new(1, 0, 0, 0)
+        GridFrame.AutomaticSize = Enum.AutomaticSize.Y
+        GridFrame.Parent = parentPage
+
+        local GridLayout = Instance.new("UIGridLayout", GridFrame)
+        GridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+        GridLayout.CellSize = UDim2.new(0, 220, 0, 50) -- Podstawa modułu
+        GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+        return GridFrame
     end
 
     return UI
