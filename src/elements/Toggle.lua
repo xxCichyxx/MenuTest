@@ -46,28 +46,43 @@ return function(options, themeManager, parent, menuConfig, saveMenuConfig)
         Value = menuConfig[options.Flag]
     end
 
-    local function Update()
+    local function Update(instant)
+        -- FIX: Sprawdzamy czy obiekt jest w drzewie gry
+        if not ToggleFrame.Parent then instant = true end
+
         if Value then
-            TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Accent}):Play()
-            Knob:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)
-            Label.TextColor3 = Colors.Text
+            if instant then
+                Switch.BackgroundColor3 = Colors.Accent
+                Knob.Position = UDim2.new(1, -18, 0.5, 0)
+                Label.TextColor3 = Colors.Text
+            else
+                TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Accent}):Play()
+                Knob:TweenPosition(UDim2.new(1, -18, 0.5, 0), "Out", "Quart", 0.2, true)
+                Label.TextColor3 = Colors.Text
+            end
         else
-            TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Stroke}):Play()
-            Knob:TweenPosition(UDim2.new(0, 2, 0.5, 0), "Out", "Quart", 0.2, true)
-            Label.TextColor3 = Colors.TextDim
+            if instant then
+                Switch.BackgroundColor3 = Colors.Stroke
+                Knob.Position = UDim2.new(0, 2, 0.5, 0)
+                Label.TextColor3 = Colors.TextDim
+            else
+                TweenService:Create(Switch, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Stroke}):Play()
+                Knob:TweenPosition(UDim2.new(0, 2, 0.5, 0), "Out", "Quart", 0.2, true)
+                Label.TextColor3 = Colors.TextDim
+            end
         end
     end
 
     ToggleFrame.MouseButton1Click:Connect(function()
         Value = not Value
-        Update()
+        Update(false) -- Użyj tweena przy interakcji
         if options.Callback then options.Callback(Value) end
         if options.Flag then saveMenuConfig(options.Flag, Value) end
     end)
 
-    Update()
+    Update(true) -- Inicjalizacja natychmiastowa
 
     local API = {}
-    function API:Set(val) Value = val Update() end
+    function API:Set(val) Value = val Update(false) end
     return API
 end
