@@ -52,22 +52,6 @@ function MenuLib:CreateWindow(options)
     local Config = options or {}
     local Name = Config.Name or "Menu"
 
-    -- // SYSTEM CLEANUP (Zarządzanie połączeniami)
-    local Connections = {}
-
-    local function AddConnection(conn)
-        table.insert(Connections, conn)
-        return conn
-    end
-
-    local function Cleanup()
-        for _, conn in pairs(Connections) do
-            if conn then conn:Disconnect() end
-        end
-        Connections = {}
-    end
-
-    -- // 1. SYSTEM IDENTYFIKACJI I USUWANIA STAREGO MENU
     local menuId = "MenuInstance"
     local ProtectedLocation = nil
     pcall(function() ProtectedLocation = CoreGui end)
@@ -79,7 +63,6 @@ function MenuLib:CreateWindow(options)
         end
     end
 
-    -- // 2. SYSTEM PLIKÓW I MOTYWÓW
     local mainFolder = Name
     local themesFolder = mainFolder .. "/themes"
     local configsFolder = mainFolder .. "/configs"
@@ -138,9 +121,6 @@ function MenuLib:CreateWindow(options)
     })
     UI.ScreenGui.Parent = ProtectedLocation
 
-    -- Podpinamy Cleanup pod zniszczenie GUI
-    UI.ScreenGui.Destroying:Connect(Cleanup)
-
     -- 4. LOGIKA UI
     local isVisible = true
     local isTweening = false
@@ -162,17 +142,12 @@ function MenuLib:CreateWindow(options)
         end)
     end
 
-    AddConnection(UserInputService.InputBegan:Connect(function(input, gpe)
+    UserInputService.InputBegan:Connect(function(input, gpe)
         if not gpe and input.KeyCode == Enum.KeyCode[Config.ToggleUIKeybind or "Insert"] then toggleMenu() end
-    end))
-
+    end)
     UI.MinBtn.MouseButton1Click:Connect(toggleMenu)
     UI.CloseBtn.MouseButton1Click:Connect(function()
-        if UI.ShowExitModal then
-            UI.ShowExitModal()
-        else
-            UI.ScreenGui:Destroy() -- To wywoła Cleanup
-        end
+        if UI.ShowExitModal then UI.ShowExitModal() else UI.ScreenGui:Destroy() end
     end)
     if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
 
@@ -193,48 +168,104 @@ function MenuLib:CreateWindow(options)
         local TabElements = UI:CreateTab(name, icon or "layers", order or userTabCounter)
         if not order then userTabCounter = userTabCounter + 1 end
 
-        -- Ustawienie UIGridLayout dla elementów (Grid)
-        local GridLayout = Instance.new("UIGridLayout")
-        -- ZMIANA: Używamy skali (0.48), aby zmieścić dwa moduły obok siebie z odstępem
-        GridLayout.CellSize = UDim2.new(0.48, 0, 0, 50)
-        GridLayout.CellPadding = UDim2.new(0.02, 0, 0, 10) -- 2% odstępu poziomego
-        GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        GridLayout.FillDirection = Enum.FillDirection.Horizontal
-        GridLayout.Parent = TabElements.Page
+        -- SYSTEM KOLUMN (RESPONSYWNY)
+        local LeftColumn = Instance.new("Frame")
+        LeftColumn.Name = "LeftColumn"
+        LeftColumn.BackgroundTransparency = 1
+        LeftColumn.Parent = TabElements.Page
 
-        -- Ważne: AutomaticCanvasSize dla scrollowania
+        local RightColumn = Instance.new("Frame")
+        RightColumn.Name = "RightColumn"
+        RightColumn.BackgroundTransparency = 1
+        RightColumn.Parent = TabElements.Page
+
+        local LeftLayout = Instance.new("UIListLayout")
+        LeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        LeftLayout.Padding = UDim.new(0, 10)
+        LeftLayout.Parent = LeftColumn
+
+        local RightLayout = Instance.new("UIListLayout")
+        RightLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        RightLayout.Padding = UDim.new(0, 10)
+        RightLayout.Parent = RightColumn
+
         TabElements.Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+        -- Tabela przechowująca wszystkie moduły w tej zakładce
+        local Modules = {}
+
+        -- Funkcja aktualizująca układ w zależności od szerokości
+        local function UpdateLayout()
+            local width = TabElements.Page.AbsoluteSize.X
+
+            if width < 460 then
+                -- TRYB JEDNOKOLUMNOWY (Małe menu)
+                LeftColumn.Size = UDim2.new(1, -10, 1, 0) -- Pełna szerokość (minus scrollbar)
+                LeftColumn.Position = UDim2.new(0, 0, 0, 0)
+                RightColumn.Visible = false
+
+                -- Przenieś wszystkie moduły do lewej kolumny
+                for _, mod in ipairs(Modules) do
+                    mod.Parent = LeftColumn
+                end
+            else
+                -- TRYB DWUKOLUMNOWY (Szerokie menu)
+                LeftColumn.Size = UDim2.new(0.49, 0, 1, 0)
+                LeftColumn.Position = UDim2.new(0, 0, 0, 0)
+                RightColumn.Size = UDim2.new(0.49, 0, 1, 0)
+                RightColumn.Position = UDim2.new(0.51, 0, 0, 0)
+                RightColumn.Visible = true
+
+                -- Rozdziel moduły: Parzyste -> Prawa, Nieparzyste -> Lewa
+                for i, mod in ipairs(Modules) do
+                    if i % 2 == 0 then
+                        mod.Parent = RightColumn
+                    else
+                        mod.Parent = LeftColumn
+                    end
+                end
+            end
+        end
+
+        -- Nasłuchiwanie zmiany rozmiaru
+        TabElements.Page:GetPropertyChangedSignal("AbsoluteSize"):Connect(UpdateLayout)
+
+        -- Funkcja pomocnicza do dodawania elementu
+        local function AddElementToLayout(element)
+            table.insert(Modules, element)
+            UpdateLayout() -- Odśwież układ po dodaniu
+            return element
+        end
 
         local TabAPI = {}
         TabAPI.Page = TabElements.Page
 
-        -- Przekazujemy AddConnection do elementów, aby mogły rejestrować swoje bindy
         function TabAPI:CreateButton(options)
-            return ButtonElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+            return AddElementToLayout(ButtonElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateToggle(options)
-            return ToggleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+            return AddElementToLayout(ToggleElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateColorPicker(options)
-            return ColorPickerElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+            return AddElementToLayout(ColorPickerElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateSlider(options)
-            return SliderElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+            return AddElementToLayout(SliderElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateInput(options)
-            return InputElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+            return AddElementToLayout(InputElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateDropdown(options)
-            return DropdownElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+            return AddElementToLayout(DropdownElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateModule(options)
-            return ModuleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+            return AddElementToLayout(ModuleElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         return TabAPI
