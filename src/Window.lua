@@ -404,10 +404,10 @@ function Window:Create(config)
         Page.Parent = UI.PagesContainer
 
         local PageLayout = Instance.new("UIGridLayout", Page)
-        PageLayout.Padding = UDim2.new(0, 10, 0, 10) -- Odstępy między modułami
+        PageLayout.CellPadding = UDim2.new(0, 10, 0, 10) -- Zmienione z Padding na CellPadding
         PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        PageLayout.CellSize = UDim2.new(0, 220, 0, 50) -- Szerokość 220 (taka jak w Module.lua)
-        PageLayout.FillDirection = Enum.FillDirection.Horizontal -- Układaj od lewej do prawej
+        PageLayout.CellSize = UDim2.new(0, 220, 0, 50)
+        PageLayout.FillDirection = Enum.FillDirection.Horizontal
         PageLayout.StartCorner = Enum.StartCorner.TopLeft
 
         local PagePadding = Instance.new("UIPadding", Page)
