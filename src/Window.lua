@@ -403,9 +403,12 @@ function Window:Create(config)
         Page.ScrollBarThickness = 4 -- ZMIANA: Widoczny pasek przewijania
         Page.Parent = UI.PagesContainer
 
-        local PageLayout = Instance.new("UIListLayout", Page)
-        PageLayout.Padding = UDim.new(0, 10)
+        local PageLayout = Instance.new("UIGridLayout", Page)
+        PageLayout.Padding = UDim2.new(0, 10, 0, 10) -- Odstępy między modułami
         PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        PageLayout.CellSize = UDim2.new(0, 220, 0, 50) -- Szerokość 220 (taka jak w Module.lua)
+        PageLayout.FillDirection = Enum.FillDirection.Horizontal -- Układaj od lewej do prawej
+        PageLayout.StartCorner = Enum.StartCorner.TopLeft
 
         local PagePadding = Instance.new("UIPadding", Page)
         PagePadding.PaddingLeft = UDim.new(0, 20)
