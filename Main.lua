@@ -171,11 +171,15 @@ function MenuLib:CreateWindow(options)
         -- SYSTEM KOLUMN (RESPONSYWNY)
         local LeftColumn = Instance.new("Frame")
         LeftColumn.Name = "LeftColumn"
+        LeftColumn.Size = UDim2.new(0.48, 0, 1, 0)
+        LeftColumn.Position = UDim2.new(0, 0, 0, 0)
         LeftColumn.BackgroundTransparency = 1
         LeftColumn.Parent = TabElements.Page
 
         local RightColumn = Instance.new("Frame")
         RightColumn.Name = "RightColumn"
+        RightColumn.Size = UDim2.new(0.48, 0, 1, 0)
+        RightColumn.Position = UDim2.new(0.52, 0, 0, 0)
         RightColumn.BackgroundTransparency = 1
         RightColumn.Parent = TabElements.Page
 
@@ -191,32 +195,26 @@ function MenuLib:CreateWindow(options)
 
         TabElements.Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
-        -- Tabela przechowująca wszystkie moduły w tej zakładce
         local Modules = {}
 
-        -- Funkcja aktualizująca układ w zależności od szerokości
         local function UpdateLayout()
             local width = TabElements.Page.AbsoluteSize.X
 
             if width < 460 then
-                -- TRYB JEDNOKOLUMNOWY (Małe menu)
-                LeftColumn.Size = UDim2.new(1, -10, 1, 0) -- Pełna szerokość (minus scrollbar)
+                LeftColumn.Size = UDim2.new(1, -10, 1, 0)
                 LeftColumn.Position = UDim2.new(0, 0, 0, 0)
                 RightColumn.Visible = false
 
-                -- Przenieś wszystkie moduły do lewej kolumny
                 for _, mod in ipairs(Modules) do
                     mod.Parent = LeftColumn
                 end
             else
-                -- TRYB DWUKOLUMNOWY (Szerokie menu)
                 LeftColumn.Size = UDim2.new(0.49, 0, 1, 0)
                 LeftColumn.Position = UDim2.new(0, 0, 0, 0)
                 RightColumn.Size = UDim2.new(0.49, 0, 1, 0)
                 RightColumn.Position = UDim2.new(0.51, 0, 0, 0)
                 RightColumn.Visible = true
 
-                -- Rozdziel moduły: Parzyste -> Prawa, Nieparzyste -> Lewa
                 for i, mod in ipairs(Modules) do
                     if i % 2 == 0 then
                         mod.Parent = RightColumn
@@ -227,45 +225,44 @@ function MenuLib:CreateWindow(options)
             end
         end
 
-        -- Nasłuchiwanie zmiany rozmiaru
         TabElements.Page:GetPropertyChangedSignal("AbsoluteSize"):Connect(UpdateLayout)
 
-        -- Funkcja pomocnicza do dodawania elementu
         local function AddElementToLayout(element)
             table.insert(Modules, element)
-            UpdateLayout() -- Odśwież układ po dodaniu
+            UpdateLayout()
             return element
         end
 
         local TabAPI = {}
         TabAPI.Page = TabElements.Page
 
+        -- FIX: Przekazujemy LeftColumn jako domyślnego rodzica, aby element był w Workspace od razu
         function TabAPI:CreateButton(options)
-            return AddElementToLayout(ButtonElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
+            return AddElementToLayout(ButtonElement(options, UI.ThemeManager, LeftColumn, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateToggle(options)
-            return AddElementToLayout(ToggleElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
+            return AddElementToLayout(ToggleElement(options, UI.ThemeManager, LeftColumn, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateColorPicker(options)
-            return AddElementToLayout(ColorPickerElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
+            return AddElementToLayout(ColorPickerElement(options, UI.ThemeManager, LeftColumn, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateSlider(options)
-            return AddElementToLayout(SliderElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
+            return AddElementToLayout(SliderElement(options, UI.ThemeManager, LeftColumn, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateInput(options)
-            return AddElementToLayout(InputElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
+            return AddElementToLayout(InputElement(options, UI.ThemeManager, LeftColumn, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateDropdown(options)
-            return AddElementToLayout(DropdownElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
+            return AddElementToLayout(DropdownElement(options, UI.ThemeManager, LeftColumn, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         function TabAPI:CreateModule(options)
-            return AddElementToLayout(ModuleElement(options, UI.ThemeManager, nil, UI.MenuConfig, UI.SaveMenuConfig))
+            return AddElementToLayout(ModuleElement(options, UI.ThemeManager, LeftColumn, UI.MenuConfig, UI.SaveMenuConfig))
         end
 
         return TabAPI
