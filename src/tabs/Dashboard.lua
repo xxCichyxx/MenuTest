@@ -211,31 +211,55 @@ function Dashboard:Render(UI, order)
         Separator.Parent = LogItem
         ThemeManager:Register(Separator, "BackgroundColor3", "Accent2")
     end
+    local function safeHttpGet(url)
+    -- Sprawdzamy czy executor obsługuje funkcję request (często pomija restrykcje gry)
+    if request then
+        local response = request({
+            Url = url,
+            Method = "GET"
+        })
+        if response and response.StatusCode == 200 then
+            return true, response.Body
+        end
+        return false, nil
+    elseif syn and syn.request then
+        local response = syn.request({
+            Url = url,
+            Method = "GET"
+        })
+        if response and response.StatusCode == 200 then
+            return true, response.Body
+        end
+        return false, nil
+    else
+        -- Awaryjnie zwykły HttpGet w pcall
+        local success, result = pcall(function()
+            return game:HttpGet(url)
+        end)
+        return success, result
+    end
+    end
 
     task.spawn(function()
-        local success, version = pcall(function()
-            return game:HttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/version.txt")
-        end)
-        if versionLabel then
-            versionLabel.Text = (success and version) and "v" .. version:gsub("^%s*(.-)%s*$", "%1") or "Unknown"
-        end
+    local success, version = safeHttpGet("https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/version.txt")
+    if versionLabel then
+        versionLabel.Text = (success and version) and "v" .. version:gsub("^%s*(.-)%s*$", "%1") or "Unknown"
+    end
 
-        local success, response = pcall(function()
-            return game:HttpGet("https://api.github.com/repos/xxCichyxx/MenuTest/commits")
-        end)
+    local successResp, response = safeHttpGet("https://api.github.com/repos/xxCichyxx/MenuTest/commits")
 
-        if success and response then
-            local successJson, commits = pcall(function() return HttpService:JSONDecode(response) end)
-            if successJson and type(commits) == "table" then
-                for _, child in pairs(ChangelogList:GetChildren()) do if child:IsA("Frame") then child:Destroy() end end
-                for i = 1, math.min(5, #commits) do
-                    local commitData = commits[i]
-                    if commitData and commitData.commit then
-                        addLog(commitData.commit.message, commitData.sha:sub(1, 7))
-                    end
+    if successResp and response then
+        local successJson, commits = pcall(function() return HttpService:JSONDecode(response) end)
+        if successJson and type(commits) == "table" then
+            for _, child in pairs(ChangelogList:GetChildren()) do if child:IsA("Frame") then child:Destroy() end end
+            for i = 1, math.min(5, #commits) do
+                local commitData = commits[i]
+                if commitData and commitData.commit then
+                    addLog(commitData.commit.message, commitData.sha:sub(1, 7))
                 end
             end
         end
+    end
     end)
 end
 
