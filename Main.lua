@@ -5,13 +5,23 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
-local PlayerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local Players = game:GetService("Players")
+local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 -- // KONFIGURACJA ŚCIEŻEK
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 
--- // ŁADOWANIE MODUŁÓW
-local WindowModule = loadstring(game:HttpGet(baseUrl .. "Window.lua"))()
+-- // BEZPIECZNE ŁADOWANIE MODUŁU OKNA
+local success, result = pcall(function()
+    return game:HttpGet(baseUrl .. "Window.lua")
+end)
+
+if not success or not result then
+    warn("Błąd krytyczny: Nie udało się pobrać Window.lua")
+    return
+end
+
+local WindowModule = loadstring(result)()
 
 -- // FUNKCJE POMOCNICZE
 function MenuLib:GenerateID(length)
@@ -106,8 +116,8 @@ function MenuLib:CreateWindow(options)
     writefile(themesFolder .. "/dark.json", prettyEncode(darkTheme))
 
     local themeColors = darkTheme
-    local success, data = pcall(function() return HttpService:JSONDecode(readfile(themesFolder .. "/dark.json")) end)
-    if success and type(data) == "table" then themeColors = data end
+    local sData, dData = pcall(function() return HttpService:JSONDecode(readfile(themesFolder .. "/dark.json")) end)
+    if sData and type(dData) == "table" then themeColors = dData end
 
     local menuConfig = {}
     local configFilePath = configsFolder .. "/settings.json"
@@ -138,7 +148,6 @@ function MenuLib:CreateWindow(options)
     })
     UI.ScreenGui.Parent = ProtectedLocation
 
-    -- Podpinamy Cleanup pod zniszczenie GUI
     UI.ScreenGui.Destroying:Connect(Cleanup)
 
     -- 4. LOGIKA UI
@@ -171,7 +180,7 @@ function MenuLib:CreateWindow(options)
         if UI.ShowExitModal then
             UI.ShowExitModal()
         else
-            UI.ScreenGui:Destroy() -- To wywoła Cleanup
+            UI.ScreenGui:Destroy()
         end
     end)
     if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
@@ -180,35 +189,40 @@ function MenuLib:CreateWindow(options)
     local WindowAPI = {}
     local userTabCounter = 2
 
-    -- Ładowanie modułów elementów
-    local ButtonElement = loadstring(game:HttpGet(baseUrl .. "elements/Button.lua"))()
-    local ToggleElement = loadstring(game:HttpGet(baseUrl .. "elements/Toggle.lua"))()
-    local ColorPickerElement = loadstring(game:HttpGet(baseUrl .. "elements/ColorPicker.lua"))()
-    local SliderElement = loadstring(game:HttpGet(baseUrl .. "elements/Slider.lua"))()
-    local InputElement = loadstring(game:HttpGet(baseUrl .. "elements/Input.lua"))()
-    local DropdownElement = loadstring(game:HttpGet(baseUrl .. "elements/Dropdown.lua"))()
-    local ModuleElement = loadstring(game:HttpGet(baseUrl .. "elements/Module.lua"))()
+    -- Funkcja pomocnicza do bezpiecznego ładowania elementu
+    local function safeLoadElement(path)
+        local ok, res = pcall(function() return game:HttpGet(baseUrl .. path) end)
+        if ok and res then
+            local loaded = loadstring(res)
+            if loaded then return loaded() end
+        end
+        return function() return {} end
+    end
+
+    local ButtonElement = safeLoadElement("elements/Button.lua")
+    local ToggleElement = safeLoadElement("elements/Toggle.lua")
+    local ColorPickerElement = safeLoadElement("elements/ColorPicker.lua")
+    local SliderElement = safeLoadElement("elements/Slider.lua")
+    local InputElement = safeLoadElement("elements/Input.lua")
+    local DropdownElement = safeLoadElement("elements/Dropdown.lua")
+    local ModuleElement = safeLoadElement("elements/Module.lua")
 
     function WindowAPI:CreateTab(name, icon, order)
         local TabElements = UI:CreateTab(name, icon or "layers", order or userTabCounter)
         if not order then userTabCounter = userTabCounter + 1 end
 
-        -- Ustawienie UIGridLayout dla elementów (Grid)
         local GridLayout = Instance.new("UIGridLayout")
-        -- ZMIANA: Używamy skali (0.48), aby zmieścić dwa moduły obok siebie z odstępem
         GridLayout.CellSize = UDim2.new(0.48, 0, 0, 50)
-        GridLayout.CellPadding = UDim2.new(0.02, 0, 0, 10) -- 2% odstępu poziomego
+        GridLayout.CellPadding = UDim2.new(0.02, 0, 0, 10)
         GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
         GridLayout.FillDirection = Enum.FillDirection.Horizontal
         GridLayout.Parent = TabElements.Page
 
-        -- Ważne: AutomaticCanvasSize dla scrollowania
         TabElements.Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
         local TabAPI = {}
         TabAPI.Page = TabElements.Page
 
-        -- Przekazujemy AddConnection do elementów, aby mogły rejestrować swoje bindy
         function TabAPI:CreateButton(options)
             return ButtonElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
@@ -243,12 +257,17 @@ function MenuLib:CreateWindow(options)
     UI.WindowAPI = WindowAPI
 
     -- // 6. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
-    task.wait(0.1)
-    local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
-    DashboardModule:Render(UI, 1)
-
-    local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
-    SettingsModule:Render(UI, 999, themeColors, mainFolder)
+    task.spawn(function()
+        task.wait(0.1)
+        pcall(function()
+            local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
+            if DashboardModule then DashboardModule:Render(UI, 1) end
+        end)
+        pcall(function()
+            local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
+            if SettingsModule then SettingsModule:Render(UI, 999, themeColors, mainFolder) end
+        end)
+    end)
 
     return WindowAPI
 end
