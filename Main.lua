@@ -8,10 +8,8 @@ local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
--- // KONFIGURACJA ŚCIEŻEK
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 
--- // BEZPIECZNE ŁADOWANIE MODUŁU OKNA
 local success, result = pcall(function()
     return game:HttpGet(baseUrl .. "Window.lua")
 end)
@@ -256,7 +254,6 @@ function MenuLib:CreateWindow(options)
 
     UI.WindowAPI = WindowAPI
 
-    -- // 6. ŁADOWANIE ZAKŁADEK SYSTEMOWYCH
     task.spawn(function()
         task.wait(0.1)
         pcall(function()

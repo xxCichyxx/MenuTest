@@ -31,14 +31,14 @@ function Sidebar:Create(UI, theme, config)
     -- // LISTA ZAKŁADEK (SCROLLING FRAME)
     local TabList = Instance.new("ScrollingFrame")
     TabList.Name = "TabList"
-    TabList.Size = UDim2.new(1, 0, 1, -106) -- 46px góra + 60px dół
+    TabList.Size = UDim2.new(1, 0, 1, -106)
     TabList.Position = UDim2.new(0, 0, 0, 46)
     TabList.BackgroundTransparency = 1
     TabList.BorderSizePixel = 0
-    TabList.CanvasSize = UDim2.new(0, 0, 0, 0) -- Startowe 0
-    TabList.AutomaticCanvasSize = Enum.AutomaticSize.Y -- AUTOMATYCZNE SKALOWANIE
-    TabList.ScrollBarThickness = 2 -- Cienki pasek przewijania
-    TabList.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80) -- Kolor paska (można podpiąć pod motyw)
+    TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    TabList.ScrollBarThickness = 2
+    TabList.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
     TabList.Parent = SidebarFrame
     TabList.ClipsDescendants = true
     UI.TabList = TabList
@@ -51,9 +51,9 @@ function Sidebar:Create(UI, theme, config)
     -- // DOLNA CZĘŚĆ (Profil)
     local ProfileFrame = Instance.new("Frame")
     ProfileFrame.Name = "ProfileFrame"
-    ProfileFrame.Size = UDim2.new(1, 0, 0, 60) -- Stała wysokość
+    ProfileFrame.Size = UDim2.new(1, 0, 0, 60)
     ProfileFrame.Position = UDim2.new(0, 0, 1, 0)
-    ProfileFrame.AnchorPoint = Vector2.new(0, 1) -- Przypięty do dołu
+    ProfileFrame.AnchorPoint = Vector2.new(0, 1)
     ProfileFrame.BackgroundTransparency = 1
     ProfileFrame.Parent = SidebarFrame
 
@@ -73,25 +73,29 @@ function Sidebar:Create(UI, theme, config)
     AvatarContainer.BackgroundTransparency = 1
     AvatarContainer.Parent = ProfileFrame
 
+    -- BEZPIECZNE POBRANIE GRACZA
+    local Players = game:GetService("Players")
+    local LocalPlayer = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() and Players.LocalPlayer
+
     local Avatar = Instance.new("ImageLabel")
     Avatar.Name = "Avatar"
     Avatar.Size = UDim2.new(1, 0, 1, 0)
     Avatar.BackgroundTransparency = 1
-    Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. game.Players.LocalPlayer.UserId .. "&w=150&h=150"
+    Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. (LocalPlayer and LocalPlayer.UserId or 1) .. "&w=150&h=150"
     Avatar.Parent = AvatarContainer
 
     -- Zaokrąglenie awatara
     local AvatarCorner = Instance.new("UICorner")
-    AvatarCorner.CornerRadius = UDim.new(1, 0) -- Pełne koło
+    AvatarCorner.CornerRadius = UDim.new(1, 0)
     AvatarCorner.Parent = Avatar
 
     local DisplayName = Instance.new("TextLabel")
     DisplayName.Name = "DisplayName"
-    DisplayName.Text = game.Players.LocalPlayer.DisplayName
+    DisplayName.Text = LocalPlayer and LocalPlayer.DisplayName or "User"
     DisplayName.Font = Enum.Font.GothamBold
     DisplayName.TextSize = 14
-    DisplayName.Size = UDim2.new(1, -70, 1, 0) -- Reszta szerokości
-    DisplayName.Position = UDim2.new(0, 65, 0, 0) -- Odsunięcie od awatara
+    DisplayName.Size = UDim2.new(1, -70, 1, 0)
+    DisplayName.Position = UDim2.new(0, 65, 0, 0)
     DisplayName.BackgroundTransparency = 1
     DisplayName.TextXAlignment = Enum.TextXAlignment.Left
     DisplayName.Parent = ProfileFrame
