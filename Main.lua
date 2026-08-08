@@ -255,7 +255,6 @@ function MenuLib:CreateWindow(options)
     UI.WindowAPI = WindowAPI
 
     task.spawn(function()
-        task.wait(0.1)
         pcall(function()
             local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
             if DashboardModule then DashboardModule:Render(UI, 1) end
@@ -264,7 +263,21 @@ function MenuLib:CreateWindow(options)
             local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
             if SettingsModule then SettingsModule:Render(UI, 999, themeColors, mainFolder) end
         end)
+        UI._isReady = true
+        if UI._readyCallbacks then
+            for _, cb in ipairs(UI._readyCallbacks) do
+                task.spawn(cb)
+            end
+        end
     end)
+
+    function UI:OnReady(callback)
+        if self._isReady then
+            task.spawn(callback)
+        else
+            table.insert(self._readyCallbacks, callback)
+        end
+    end
 
     return WindowAPI
 end
