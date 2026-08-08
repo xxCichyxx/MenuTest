@@ -92,8 +92,8 @@ function Sidebar:Create(UI, theme, config)
     local NameFrame = Instance.new("Frame")
     NameFrame.Name = "NameFrame"
     NameFrame.Size = UDim2.new(1, -70, 1, 0)
-    NameFrame.Position = UDim2.new(0, 65, 0, 0)
-    NameFrame.BackgroundTransparency = 1
+    NameFrame.Position = UDim2.new(0, 65, 0.5, 0)
+    NameFrame.AnchorPoint = Vector2.new(0, 0.5)
     NameFrame.Parent = ProfileFrame
 
     -- Dynamic display name handling
