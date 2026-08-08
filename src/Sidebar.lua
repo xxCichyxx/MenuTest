@@ -110,7 +110,7 @@ function Sidebar:Create(UI, theme, config)
     DisplayName.TextSize = 12
     DisplayName.TextScaled = true
     DisplayName.Size = UDim2.new(1, 0, 0.5, 0)
-    DisplayName.Position = UDim2.new(0, 0, 0.5, 0)
+    DisplayName.Position = UDim2.new(0, 0, 0.0, 0)
     DisplayName.AnchorPoint = Vector2.new(0, 0.5)
     DisplayName.BackgroundTransparency = 1
     DisplayName.TextXAlignment = Enum.TextXAlignment.Left
