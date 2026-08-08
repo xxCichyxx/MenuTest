@@ -30,20 +30,24 @@ end
 -- Pobierz, skompiluj i uruchom skrypt z URL. Zwraca wynik lub fallbackValue przy błędzie.
 local function safeLoadUrl(url, fallbackValue)
     local ok, content = safeHttpGet(url)
-    if not ok or not content then
-        warn("[MenuLib] Nie udało się pobrać: " .. tostring(url))
+    -- SPRAWDZENIE CZY TREŚĆ TO FAKTYCZNIE TEKST (zapobiega próbie kompilacji nil)
+    if not ok or not content or type(content) ~= "string" or #content == 0 then
+        warn("[MenuLib] Nie udało się pobrać lub treść jest pusta: " .. tostring(url))
         return fallbackValue
     end
+    
     local chunk, compileErr = loadstring(content)
     if not chunk then
         warn("[MenuLib] Błąd kompilacji " .. tostring(url) .. ": " .. tostring(compileErr))
         return fallbackValue
     end
+    
     local runOk, result = pcall(chunk)
     if not runOk then
         warn("[MenuLib] Błąd wykonania " .. tostring(url) .. ": " .. tostring(result))
         return fallbackValue
     end
+    
     return result
 end
 
