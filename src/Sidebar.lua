@@ -91,9 +91,9 @@ function Sidebar:Create(UI, theme, config)
 
     local NameFrame = Instance.new("Frame")
     NameFrame.Name = "NameFrame"
-    NameFrame.Size = UDim2.new(1, -70, 0, 30) -- Zmieniono wysokość, aby ułatwić centrowanie
-    NameFrame.Position = UDim2.new(0, 65, 0.5, 0) -- Pozycjonowanie w 50% wysokości profilu
-    NameFrame.AnchorPoint = Vector2.new(0, 0.5) -- Kotwica na środku ramki nazwy
+    NameFrame.Size = UDim2.new(1, -70, 1, 0) -- full height for proper vertical centering
+    NameFrame.Position = UDim2.new(0, 65, 0.5, 0) -- centered vertically in profile
+    NameFrame.AnchorPoint = Vector2.new(0, 0.5)
     NameFrame.BackgroundTransparency = 1
     NameFrame.Parent = ProfileFrame
 
