@@ -79,8 +79,6 @@ local WindowModuleFallback = {
     end
 }
 
-local WindowModule = safeLoadUrl(baseUrl .. "Window.lua", WindowModuleFallback)
-
 -- // FUNKCJE POMOCNICZE
 function MenuLib:GenerateID(length)
     local chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -181,8 +179,21 @@ function MenuLib:CreateWindow(options)
         writefile(configFilePath, HttpService:JSONEncode(menuConfig))
     end
 
+    -- Asset cache for remote modules (url -> content/module)
+    local AssetCache = {}
+
+    -- Cached version of safeLoadUrl: first checks AssetCache, otherwise fetches and stores.
+    local function cachedLoadUrl(url, fallback)
+        if AssetCache[url] ~= nil then
+            return AssetCache[url]
+        end
+        local result = safeLoadUrl(url, fallback)
+        AssetCache[url] = result
+        return result
+    end
+
     -- TWORZENIE OKNA
-    local UI = WindowModule:Create({
+    local UI = cachedLoadUrl(baseUrl .. "Window.lua", WindowModuleFallback):Create({
         Name           = Name,
         Tittle         = Config.Tittle   or "",
         TittlePos      = Config.TittlePos or "Left",
@@ -239,15 +250,13 @@ function MenuLib:CreateWindow(options)
     -- // ============================================================
     -- // ŁADOWANIE ELEMENTÓW (bezpieczne, z fallbackiem)
     -- // ============================================================
-    -- Elementy są ładowane SYNCHRONICZNIE tutaj, więc gdy InitCallback
-    -- zostanie wywołany są już gotowe do użycia.
-    local ButtonElement       = safeLoadUrl(baseUrl .. "elements/Button.lua",      dummyElementLoader)
-    local ToggleElement       = safeLoadUrl(baseUrl .. "elements/Toggle.lua",      dummyElementLoader)
-    local ColorPickerElement  = safeLoadUrl(baseUrl .. "elements/ColorPicker.lua", dummyElementLoader)
-    local SliderElement       = safeLoadUrl(baseUrl .. "elements/Slider.lua",      dummyElementLoader)
-    local InputElement        = safeLoadUrl(baseUrl .. "elements/Input.lua",       dummyElementLoader)
-    local DropdownElement     = safeLoadUrl(baseUrl .. "elements/Dropdown.lua",    dummyElementLoader)
-    local ModuleElement       = safeLoadUrl(baseUrl .. "elements/Module.lua",      dummyElementLoader)
+    local ButtonElement       = cachedLoadUrl(baseUrl .. "elements/Button.lua",      dummyElementLoader)
+    local ToggleElement       = cachedLoadUrl(baseUrl .. "elements/Toggle.lua",      dummyElementLoader)
+    local ColorPickerElement  = cachedLoadUrl(baseUrl .. "elements/ColorPicker.lua", dummyElementLoader)
+    local SliderElement       = cachedLoadUrl(baseUrl .. "elements/Slider.lua",      dummyElementLoader)
+    local InputElement        = cachedLoadUrl(baseUrl .. "elements/Input.lua",       dummyElementLoader)
+    local DropdownElement     = cachedLoadUrl(baseUrl .. "elements/Dropdown.lua",    dummyElementLoader)
+    local ModuleElement       = cachedLoadUrl(baseUrl .. "elements/Module.lua",      dummyElementLoader)
 
     -- // ============================================================
     -- // PUBLICZNE API
@@ -255,26 +264,17 @@ function MenuLib:CreateWindow(options)
     local WindowAPI = {}
     UI.WindowAPI    = WindowAPI
 
-    -- Licznik dla zakładek użytkownika (zaczyna od 2; 1 = Dashboard, 999 = Settings)
     UI._userTabCounter   = 2
     UI._systemTabsLoaded = false
     UI._isReady          = false
     UI._readyCallbacks   = {}
 
-    -- -------------------------------------------------------
-    -- WindowAPI:CreateTab
-    -- UWAGA: NIE MA TU ŻADNEGO DEADLOCK-GUARD'A.
-    -- Porządek wizualny gwarantuje LayoutOrder (Dashboard=1, user=2+, Settings=999).
-    -- Poprzedni guard (_isSystemLoading) powodował zakleszczenie gdy Settings.lua
-    -- wywoływało UI.WindowAPI:CreateTab podczas ładowania systemowego.
-    -- -------------------------------------------------------
     function WindowAPI:CreateTab(name, icon, order)
         local tabOrder = order or UI._userTabCounter
         if not order then UI._userTabCounter = UI._userTabCounter + 1 end
 
         local TabElements = UI:CreateTab(name, icon or "layers", tabOrder)
 
-        -- UIGridLayout dla zakładek użytkownika (Settings tworzy własny layout w Page)
         if not TabElements.Page:FindFirstChildOfClass("UIGridLayout") then
             local GridLayout = Instance.new("UIGridLayout")
             GridLayout.CellSize      = UDim2.new(0.48, 0, 0, 50)
@@ -314,14 +314,9 @@ function MenuLib:CreateWindow(options)
         return TabAPI
     end
 
-    -- -------------------------------------------------------
-    -- WindowAPI:Init  – callback uruchamiany PO załadowaniu zakładek systemowych
-    -- -------------------------------------------------------
     function WindowAPI:Init(callback)
         if type(callback) ~= "function" then return WindowAPI end
         WindowAPI._initCallback = callback
-        -- Jeśli zakładki systemowe już załadowane (bardzo mało prawdopodobne),
-        -- uruchom callback natychmiast
         if UI._systemTabsLoaded then
             task.spawn(function()
                 local ok, err = pcall(callback, WindowAPI)
@@ -332,9 +327,6 @@ function MenuLib:CreateWindow(options)
         return WindowAPI
     end
 
-    -- -------------------------------------------------------
-    -- WindowAPI:OnReady  – callback uruchamiany gdy wszystko gotowe
-    -- -------------------------------------------------------
     function WindowAPI:OnReady(callback)
         if type(callback) ~= "function" then return WindowAPI end
         if UI._isReady then
@@ -348,12 +340,6 @@ function MenuLib:CreateWindow(options)
     end
 
     -- // ============================================================
-    -- // SEKWENCYJNE ŁADOWANIE ZAKŁADEK SYSTEMOWYCH W TLE
-    -- // ============================================================
-    task.spawn(function()
-        -- 1. Dashboard (LayoutOrder = 1) ----------------------
-        local dashOk, dashErr = pcall(function()
-            local DashboardModule = safeLoadUrl(baseUrl .. "tabs/Dashboard.lua", nil)
             if DashboardModule and type(DashboardModule.Render) == "function" then
                 DashboardModule:Render(UI, 1)
             else
