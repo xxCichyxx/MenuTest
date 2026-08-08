@@ -10,60 +10,71 @@ local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 
--- // SYSTEM BEZPIECZNEGO POBIERANIA (Safe Loading with Retries & Fallback)
-local function safeHttpGet(url, maxRetries, delayTime)
-    maxRetries = maxRetries or 3
-    delayTime = delayTime or 0.5
+-- // SYSTEM BEZPIECZNEGO POBIERANIA (Safe HttpGet z retry)
+local function safeHttpGet(url, maxRetries, retryDelay)
+    maxRetries  = maxRetries  or 3
+    retryDelay  = retryDelay  or 0.5
     for attempt = 1, maxRetries do
-        local success, result = pcall(function()
+        local ok, result = pcall(function()
             return game:HttpGet(url)
         end)
-        if success and type(result) == "string" and #result > 0 then
+        if ok and type(result) == "string" and #result > 0 then
             return true, result
         end
-        if attempt < maxRetries then
-            task.wait(delayTime)
-        end
+        warn(string.format("[MenuLib] Próba %d/%d nie powiodła się: %s", attempt, maxRetries, tostring(url)))
+        if attempt < maxRetries then task.wait(retryDelay) end
     end
     return false, nil
 end
 
+-- Pobierz, skompiluj i uruchom skrypt z URL. Zwraca wynik lub fallbackValue przy błędzie.
 local function safeLoadUrl(url, fallbackValue)
-    local ok, content = safeHttpGet(url, 3, 0.5)
-    if ok and content then
-        local loadedFunc, err = loadstring(content)
-        if loadedFunc then
-            local runOk, result = pcall(loadedFunc)
-            if runOk then
-                return result
-            else
-                warn("[MenuLib] Błąd wykonania skryptu z URL (" .. tostring(url) .. "): " .. tostring(result))
-            end
-        else
-            warn("[MenuLib] Błąd kompilacji skryptu z URL (" .. tostring(url) .. "): " .. tostring(err))
-        end
-    else
-        warn("[MenuLib] Nie udało się pobrać pliku z URL: " .. tostring(url))
+    local ok, content = safeHttpGet(url)
+    if not ok or not content then
+        warn("[MenuLib] Nie udało się pobrać: " .. tostring(url))
+        return fallbackValue
     end
-    return fallbackValue
+    local chunk, compileErr = loadstring(content)
+    if not chunk then
+        warn("[MenuLib] Błąd kompilacji " .. tostring(url) .. ": " .. tostring(compileErr))
+        return fallbackValue
+    end
+    local runOk, result = pcall(chunk)
+    if not runOk then
+        warn("[MenuLib] Błąd wykonania " .. tostring(url) .. ": " .. tostring(result))
+        return fallbackValue
+    end
+    return result
 end
 
+-- Bezpieczna (no-op) wersja konstruktora elementu używana jako fallback
+local function dummyElement()
+    return {}
+end
+local function dummyElementLoader()
+    return dummyElement
+end
+
+-- Fallback Window module (nie powinien się uruchomić, ale chroni przed crashem)
 local WindowModuleFallback = {
-    Create = function(config)
-        warn("[MenuLib] Wywołano awaryjny WindowModule")
-        local dummyScreen = Instance.new("ScreenGui")
+    Create = function(self, config)
+        warn("[MenuLib] KRYTYCZNY BŁĄD: Window.lua nie załadował się! Używam fallbacku.")
+        local dummyGui   = Instance.new("ScreenGui")
         local dummyFrame = Instance.new("Frame")
-        dummyFrame.Parent = dummyScreen
+        dummyFrame.Parent = dummyGui
         return {
-            ScreenGui = dummyScreen,
-            MainFrame = dummyFrame,
-            MinBtn = Instance.new("TextButton"),
-            CloseBtn = Instance.new("TextButton"),
-            CreateTab = function() return { Button = Instance.new("TextButton"), Page = Instance.new("ScrollingFrame") } end,
-            SelectDashboard = function() end,
-            Tabs = {},
-            Pages = {},
-            _readyCallbacks = {}
+            ScreenGui        = dummyGui,
+            MainFrame        = dummyFrame,
+            MinBtn           = Instance.new("TextButton"),
+            CloseBtn         = Instance.new("TextButton"),
+            Tabs             = {},
+            Pages            = {},
+            TabObjects       = {},
+            _readyCallbacks  = {},
+            ShowExitModal    = function() end,
+            CreateTab        = function() return {Button = Instance.new("TextButton"), Page = Instance.new("ScrollingFrame")} end,
+            SelectDashboard  = function() end,
+            SelectTab        = function() end,
         }
     end
 }
@@ -80,95 +91,83 @@ function MenuLib:GenerateID(length)
     return result
 end
 
-function prettyEncode(tbl)
+local function prettyEncode(tbl)
     local result = "{\n"
     local entries = {}
     local order = {"Main", "Secondary", "Accent", "Accent2", "Success", "Text", "Text_Secondary", "Close"}
     for _, k in ipairs(order) do
         if tbl[k] then
-            local v = tbl[k]
-            local keyStr = "\t\"" .. tostring(k) .. "\": "
-            local valStr = "[" .. table.concat(v, ", ") .. "]"
-            table.insert(entries, keyStr .. valStr)
+            table.insert(entries, "\t\"" .. k .. "\": [" .. table.concat(tbl[k], ", ") .. "]")
         end
     end
     for k, v in pairs(tbl) do
         local found = false
-        for _, o in ipairs(order) do if o == k then found = true break end end
+        for _, o in ipairs(order) do if o == k then found = true; break end end
         if not found then
-            local keyStr = "\t\"" .. tostring(k) .. "\": "
-            local valStr = "[" .. table.concat(v, ", ") .. "]"
-            table.insert(entries, keyStr .. valStr)
+            table.insert(entries, "\t\"" .. k .. "\": [" .. table.concat(v, ", ") .. "]")
         end
     end
-    result = result .. table.concat(entries, ",\n") .. "\n}"
-    return result
+    return result .. table.concat(entries, ",\n") .. "\n}"
 end
 
+-- // ============================================================
+-- // GŁÓWNA FUNKCJA TWORZENIA OKNA
+-- // ============================================================
 function MenuLib:CreateWindow(options)
     local Config = options or {}
-    local Name = Config.Name or "Menu"
+    local Name   = Config.Name or "Menu"
 
-    -- // SYSTEM CLEANUP (Zarządzanie połączeniami)
+    -- CLEANUP
     local Connections = {}
-
-    local function AddConnection(conn)
-        table.insert(Connections, conn)
-        return conn
-    end
-
+    local function AddConnection(conn) table.insert(Connections, conn); return conn end
     local function Cleanup()
-        for _, conn in pairs(Connections) do
-            if conn then conn:Disconnect() end
-        end
+        for _, c in pairs(Connections) do if c then c:Disconnect() end end
         Connections = {}
     end
 
-    -- // 1. SYSTEM IDENTYFIKACJI I USUWANIA STAREGO MENU
+    -- USUWANIE STAREGO MENU
     local menuId = "MenuInstance"
-    local ProtectedLocation = nil
+    local ProtectedLocation
     pcall(function() ProtectedLocation = CoreGui end)
     if not ProtectedLocation then ProtectedLocation = PlayerGui end
 
     for _, child in pairs(ProtectedLocation:GetChildren()) do
-        if child:IsA("ScreenGui") and child:GetAttribute(menuId) then
-            child:Destroy()
-        end
+        if child:IsA("ScreenGui") and child:GetAttribute(menuId) then child:Destroy() end
     end
 
-    -- // 2. SYSTEM PLIKÓW I MOTYWÓW
-    local mainFolder = Name
-    local themesFolder = mainFolder .. "/themes"
+    -- FOLDERY I MOTYWY
+    local mainFolder    = Name
+    local themesFolder  = mainFolder .. "/themes"
     local configsFolder = mainFolder .. "/configs"
 
-    if not isfolder(mainFolder) then makefolder(mainFolder) end
-    if not isfolder(configsFolder) then makefolder(configsFolder) end
-    if not isfolder(mainFolder .. "/emotes") then makefolder(mainFolder .. "/emotes") end
-    if not isfolder(themesFolder) then makefolder(themesFolder) end
-
-    if not isfile(mainFolder .. "/emotes/favorites.json") then
-        writefile(mainFolder .. "/emotes/favorites.json", "{}")
+    if not isfolder(mainFolder)          then makefolder(mainFolder) end
+    if not isfolder(configsFolder)       then makefolder(configsFolder) end
+    if not isfolder(mainFolder.."/emotes") then makefolder(mainFolder.."/emotes") end
+    if not isfolder(themesFolder)        then makefolder(themesFolder) end
+    if not isfile(mainFolder.."/emotes/favorites.json") then
+        writefile(mainFolder.."/emotes/favorites.json", "{}")
     end
 
     local darkTheme = {
-        Main = {15, 15, 15},
-        Secondary = {25, 25, 25},
-        Accent = {60, 60, 60},
-        Accent2 = {40, 40, 40},
-        Success = {100, 255, 100},
-        Text = {255, 255, 255},
-        Text_Secondary = {160, 160, 160},
-        Close = {200, 50, 50}
+        Main          = {15,  15,  15},
+        Secondary     = {25,  25,  25},
+        Accent        = {60,  60,  60},
+        Accent2       = {40,  40,  40},
+        Success       = {100, 255, 100},
+        Text          = {255, 255, 255},
+        Text_Secondary= {160, 160, 160},
+        Close         = {200, 50,  50},
     }
     writefile(themesFolder .. "/dark.json", prettyEncode(darkTheme))
 
     local themeColors = darkTheme
-    local sData, dData = pcall(function() return HttpService:JSONDecode(readfile(themesFolder .. "/dark.json")) end)
+    local sData, dData = pcall(function()
+        return HttpService:JSONDecode(readfile(themesFolder .. "/dark.json"))
+    end)
     if sData and type(dData) == "table" then themeColors = dData end
 
-    local menuConfig = {}
+    local menuConfig     = {}
     local configFilePath = configsFolder .. "/settings.json"
-
     local function loadMenuConfig()
         if isfile(configFilePath) then
             local s, d = pcall(function() return HttpService:JSONDecode(readfile(configFilePath)) end)
@@ -182,36 +181,41 @@ function MenuLib:CreateWindow(options)
         writefile(configFilePath, HttpService:JSONEncode(menuConfig))
     end
 
-    -- 3. TWORZENIE OKNA
+    -- TWORZENIE OKNA
     local UI = WindowModule:Create({
-        Name = Name,
-        Tittle = Config.Tittle or "",
-        TittlePos = Config.TittlePos or "Left",
-        Theme = themeColors,
-        MenuId = menuId,
-        GenerateID = MenuLib.GenerateID,
-        MenuConfig = menuConfig,
-        SaveMenuConfig = saveMenuConfig
+        Name           = Name,
+        Tittle         = Config.Tittle   or "",
+        TittlePos      = Config.TittlePos or "Left",
+        Theme          = themeColors,
+        MenuId         = menuId,
+        GenerateID     = function() return MenuLib:GenerateID() end,
+        MenuConfig     = menuConfig,
+        SaveMenuConfig = saveMenuConfig,
     })
-    UI.ScreenGui.Parent = ProtectedLocation
 
+    -- Upewnij się, że ScreenGui jest w odpowiednim miejscu (Window.lua może już to ustawić)
+    if UI.ScreenGui.Parent ~= ProtectedLocation then
+        UI.ScreenGui.Parent = ProtectedLocation
+    end
     UI.ScreenGui.Destroying:Connect(Cleanup)
 
-    -- 4. LOGIKA UI
-    local isVisible = true
+    -- LOGIKA TOGGLE MENU
+    local isVisible  = true
     local isTweening = false
-    local MainFrame = UI.MainFrame
-    local CenterPos = UDim2.new(0.5, 0, 0.5, 0)
-    local HiddenPos = UDim2.new(0, -750, 1, 20)
+    local MainFrame  = UI.MainFrame
+    local CenterPos  = UDim2.new(0.5, 0, 0.5, 0)
+    local HiddenPos  = UDim2.new(0, -750, 1, 20)
 
     local function toggleMenu()
         if isTweening then return end
         isTweening = true
         local target = isVisible and HiddenPos or CenterPos
         if not isVisible then MainFrame.Visible = true end
-        local tween = TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {Position = target})
-        tween:Play()
-        tween.Completed:Connect(function()
+        local tw = TweenService:Create(MainFrame,
+            TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut),
+            {Position = target})
+        tw:Play()
+        tw.Completed:Connect(function()
             isVisible = not isVisible
             if not isVisible then MainFrame.Visible = false end
             isTweening = false
@@ -219,111 +223,120 @@ function MenuLib:CreateWindow(options)
     end
 
     AddConnection(UserInputService.InputBegan:Connect(function(input, gpe)
-        if not gpe and input.KeyCode == Enum.KeyCode[Config.ToggleUIKeybind or "Insert"] then toggleMenu() end
+        if not gpe and input.KeyCode == Enum.KeyCode[Config.ToggleUIKeybind or "Insert"] then
+            toggleMenu()
+        end
     end))
 
-    if UI.MinBtn then UI.MinBtn.MouseButton1Click:Connect(toggleMenu) end
+    if UI.MinBtn   then UI.MinBtn.MouseButton1Click:Connect(toggleMenu) end
     if UI.CloseBtn then
         UI.CloseBtn.MouseButton1Click:Connect(function()
-            if UI.ShowExitModal then
-                UI.ShowExitModal()
-            else
-                UI.ScreenGui:Destroy()
-            end
+            if UI.ShowExitModal then UI.ShowExitModal() else UI.ScreenGui:Destroy() end
         end)
     end
     if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
 
-    -- // 5. PUBLICZNE API
+    -- // ============================================================
+    -- // ŁADOWANIE ELEMENTÓW (bezpieczne, z fallbackiem)
+    -- // ============================================================
+    -- Elementy są ładowane SYNCHRONICZNIE tutaj, więc gdy InitCallback
+    -- zostanie wywołany są już gotowe do użycia.
+    local ButtonElement       = safeLoadUrl(baseUrl .. "elements/Button.lua",      dummyElementLoader)
+    local ToggleElement       = safeLoadUrl(baseUrl .. "elements/Toggle.lua",      dummyElementLoader)
+    local ColorPickerElement  = safeLoadUrl(baseUrl .. "elements/ColorPicker.lua", dummyElementLoader)
+    local SliderElement       = safeLoadUrl(baseUrl .. "elements/Slider.lua",      dummyElementLoader)
+    local InputElement        = safeLoadUrl(baseUrl .. "elements/Input.lua",       dummyElementLoader)
+    local DropdownElement     = safeLoadUrl(baseUrl .. "elements/Dropdown.lua",    dummyElementLoader)
+    local ModuleElement       = safeLoadUrl(baseUrl .. "elements/Module.lua",      dummyElementLoader)
+
+    -- // ============================================================
+    -- // PUBLICZNE API
+    -- // ============================================================
     local WindowAPI = {}
-    UI._userTabCounter = 2
+    UI.WindowAPI    = WindowAPI
+
+    -- Licznik dla zakładek użytkownika (zaczyna od 2; 1 = Dashboard, 999 = Settings)
+    UI._userTabCounter   = 2
     UI._systemTabsLoaded = false
-    UI._isSystemLoading = false
-    UI._isReady = false
-    UI._readyCallbacks = UI._readyCallbacks or {}
+    UI._isReady          = false
+    UI._readyCallbacks   = {}
 
-    local dummyElementConstructor = function() return function() return {} end end
-
-    local ButtonElement = safeLoadUrl(baseUrl .. "elements/Button.lua", dummyElementConstructor)
-    local ToggleElement = safeLoadUrl(baseUrl .. "elements/Toggle.lua", dummyElementConstructor)
-    local ColorPickerElement = safeLoadUrl(baseUrl .. "elements/ColorPicker.lua", dummyElementConstructor)
-    local SliderElement = safeLoadUrl(baseUrl .. "elements/Slider.lua", dummyElementConstructor)
-    local InputElement = safeLoadUrl(baseUrl .. "elements/Input.lua", dummyElementConstructor)
-    local DropdownElement = safeLoadUrl(baseUrl .. "elements/Dropdown.lua", dummyElementConstructor)
-    local ModuleElement = safeLoadUrl(baseUrl .. "elements/Module.lua", dummyElementConstructor)
-
+    -- -------------------------------------------------------
+    -- WindowAPI:CreateTab
+    -- UWAGA: NIE MA TU ŻADNEGO DEADLOCK-GUARD'A.
+    -- Porządek wizualny gwarantuje LayoutOrder (Dashboard=1, user=2+, Settings=999).
+    -- Poprzedni guard (_isSystemLoading) powodował zakleszczenie gdy Settings.lua
+    -- wywoływało UI.WindowAPI:CreateTab podczas ładowania systemowego.
+    -- -------------------------------------------------------
     function WindowAPI:CreateTab(name, icon, order)
-        -- Odczekaj na zakładki systemowe tylko jeśli wywołanie pochodzi z kodu użytkownika (poza procesem ładowania systemowego)
-        if not UI._systemTabsLoaded and not UI._isSystemLoading then
-            while not UI._systemTabsLoaded do
-                task.wait()
-            end
-        end
-
         local tabOrder = order or UI._userTabCounter
         if not order then UI._userTabCounter = UI._userTabCounter + 1 end
 
         local TabElements = UI:CreateTab(name, icon or "layers", tabOrder)
 
-        local GridLayout = Instance.new("UIGridLayout")
-        GridLayout.CellSize = UDim2.new(0.48, 0, 0, 50)
-        GridLayout.CellPadding = UDim2.new(0.02, 0, 0, 10)
-        GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        GridLayout.FillDirection = Enum.FillDirection.Horizontal
-        GridLayout.Parent = TabElements.Page
+        -- UIGridLayout dla zakładek użytkownika (Settings tworzy własny layout w Page)
+        if not TabElements.Page:FindFirstChildOfClass("UIGridLayout") then
+            local GridLayout = Instance.new("UIGridLayout")
+            GridLayout.CellSize      = UDim2.new(0.48, 0, 0, 50)
+            GridLayout.CellPadding   = UDim2.new(0.02, 0, 0, 10)
+            GridLayout.SortOrder     = Enum.SortOrder.LayoutOrder
+            GridLayout.FillDirection = Enum.FillDirection.Horizontal
+            GridLayout.Parent        = TabElements.Page
+        end
 
         TabElements.Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
         local TabAPI = {}
-        TabAPI.Page = TabElements.Page
+        TabAPI.Page  = TabElements.Page
 
-        function TabAPI:CreateButton(options)
-            return ButtonElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+        function TabAPI:CreateButton(opts)
+            return ButtonElement(opts, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
-
-        function TabAPI:CreateToggle(options)
-            return ToggleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+        function TabAPI:CreateToggle(opts)
+            return ToggleElement(opts, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
-
-        function TabAPI:CreateColorPicker(options)
-            return ColorPickerElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+        function TabAPI:CreateColorPicker(opts)
+            return ColorPickerElement(opts, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
-
-        function TabAPI:CreateSlider(options)
-            return SliderElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+        function TabAPI:CreateSlider(opts)
+            return SliderElement(opts, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
-
-        function TabAPI:CreateInput(options)
-            return InputElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+        function TabAPI:CreateInput(opts)
+            return InputElement(opts, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
-
-        function TabAPI:CreateDropdown(options)
-            return DropdownElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+        function TabAPI:CreateDropdown(opts)
+            return DropdownElement(opts, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
-
-        function TabAPI:CreateModule(options)
-            return ModuleElement(options, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
+        function TabAPI:CreateModule(opts)
+            return ModuleElement(opts, UI.ThemeManager, TabElements.Page, UI.MenuConfig, UI.SaveMenuConfig, AddConnection)
         end
 
         return TabAPI
     end
 
-    -- Funkcja inicjalizująca / callbackowa do rejestracji zakładek użytkownika po ładowaniu zakładek systemowych
+    -- -------------------------------------------------------
+    -- WindowAPI:Init  – callback uruchamiany PO załadowaniu zakładek systemowych
+    -- -------------------------------------------------------
     function WindowAPI:Init(callback)
-        if type(callback) == "function" then
-            WindowAPI._initCallback = callback
-            if UI._systemTabsLoaded then
-                task.spawn(function()
-                    local ok, err = pcall(callback, WindowAPI)
-                    if not ok then warn("[MenuLib] Błąd w callbacku Init: " .. tostring(err)) end
-                    UI:SelectDashboard()
-                end)
-            end
+        if type(callback) ~= "function" then return WindowAPI end
+        WindowAPI._initCallback = callback
+        -- Jeśli zakładki systemowe już załadowane (bardzo mało prawdopodobne),
+        -- uruchom callback natychmiast
+        if UI._systemTabsLoaded then
+            task.spawn(function()
+                local ok, err = pcall(callback, WindowAPI)
+                if not ok then warn("[MenuLib] Błąd w Init callback: " .. tostring(err)) end
+                UI:SelectDashboard()
+            end)
         end
         return WindowAPI
     end
 
+    -- -------------------------------------------------------
+    -- WindowAPI:OnReady  – callback uruchamiany gdy wszystko gotowe
+    -- -------------------------------------------------------
     function WindowAPI:OnReady(callback)
+        if type(callback) ~= "function" then return WindowAPI end
         if UI._isReady then
             task.spawn(function() pcall(callback, WindowAPI) end)
         else
@@ -334,57 +347,57 @@ function MenuLib:CreateWindow(options)
         return WindowAPI
     end
 
-    UI.WindowAPI = WindowAPI
-
-    -- // SEKWENCYJNE I SYNCHRONICZNE ŁADOWANIE ZAKŁADEK SYSTEMOWYCH W TLE
+    -- // ============================================================
+    -- // SEKWENCYJNE ŁADOWANIE ZAKŁADEK SYSTEMOWYCH W TLE
+    -- // ============================================================
     task.spawn(function()
-        UI._isSystemLoading = true
-
-        -- 1. Najpierw Dashboard.lua (LayoutOrder = 1)
-        local DashboardModule = safeLoadUrl(baseUrl .. "tabs/Dashboard.lua", nil)
-        if DashboardModule and type(DashboardModule.Render) == "function" then
-            pcall(function()
+        -- 1. Dashboard (LayoutOrder = 1) ----------------------
+        local dashOk, dashErr = pcall(function()
+            local DashboardModule = safeLoadUrl(baseUrl .. "tabs/Dashboard.lua", nil)
+            if DashboardModule and type(DashboardModule.Render) == "function" then
                 DashboardModule:Render(UI, 1)
-            end)
-        else
-            warn("[MenuLib] Nie udało się załadować Dashboard.lua (pomijanie/fallback)")
+            else
+                warn("[MenuLib] Dashboard.lua nie załadował się lub brak metody Render.")
+            end
+        end)
+        if not dashOk then
+            warn("[MenuLib] Błąd podczas renderowania Dashboard: " .. tostring(dashErr))
         end
 
-        -- 2. Następnie Settings.lua (LayoutOrder = 999)
-        local SettingsModule = safeLoadUrl(baseUrl .. "tabs/Settings.lua", nil)
-        if SettingsModule and type(SettingsModule.Render) == "function" then
-            pcall(function()
+        -- 2. Settings (LayoutOrder = 999) ----------------------
+        local settOk, settErr = pcall(function()
+            local SettingsModule = safeLoadUrl(baseUrl .. "tabs/Settings.lua", nil)
+            if SettingsModule and type(SettingsModule.Render) == "function" then
                 SettingsModule:Render(UI, 999, themeColors, mainFolder)
-            end)
-        else
-            warn("[MenuLib] Nie udało się załadować Settings.lua (pomijanie/fallback)")
+            else
+                warn("[MenuLib] Settings.lua nie załadował się lub brak metody Render.")
+            end
+        end)
+        if not settOk then
+            warn("[MenuLib] Błąd podczas renderowania Settings: " .. tostring(settErr))
         end
 
-        -- Zakładki systemowe w pełni zainicjalizowane
+        -- Zakładki systemowe załadowane
         UI._systemTabsLoaded = true
-        UI._isSystemLoading = false
 
-        -- 3. Jeśli użytkownik zarejestrował metodę Init, wykonujemy ją teraz
+        -- 3. Uruchom Init callback użytkownika (jeśli zarejestrowany)
         if WindowAPI._initCallback then
             local ok, err = pcall(WindowAPI._initCallback, WindowAPI)
             if not ok then
-                warn("[MenuLib] Błąd w callbacku Init: " .. tostring(err))
+                warn("[MenuLib] Błąd w Init callback: " .. tostring(err))
             end
         end
 
+        -- 4. Oznacz bibliotekę jako gotową i uruchom OnReady callbacks
         UI._isReady = true
-        if UI._readyCallbacks then
-            for _, cb in ipairs(UI._readyCallbacks) do
-                task.spawn(cb)
-            end
+        for _, cb in ipairs(UI._readyCallbacks) do
+            task.spawn(cb)
         end
 
-        -- 4. DOMYŚLNY WYBÓR DASHBOARD:
-        -- Po zakończeniu ładowania wszystkich zakładek (systemowych i użytkownika)
-        -- automatycznie aktywujemy i wybieramy pierwszą zakładkę od góry (Dashboard).
-        task.defer(function()
-            UI:SelectDashboard()
-        end)
+        -- 5. Wybierz Dashboard jako domyślną zakładkę.
+        --    task.wait() daje Robloxowi czas na obliczenie AbsolutePosition.
+        task.wait()
+        UI:SelectDashboard()
     end)
 
     return WindowAPI

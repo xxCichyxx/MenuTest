@@ -2,58 +2,59 @@ local Window = {}
 
 -- Serwisy
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
+local RunService       = game:GetService("RunService")
+local CoreGui          = game:GetService("CoreGui")
+local Players          = game:GetService("Players")
+local TweenService     = game:GetService("TweenService")
 
--- Ładowanie modułów (Zabezpieczone pobieranie z ponawianiem prób i fallbackami)
+-- // SYSTEM BEZPIECZNEGO POBIERANIA (używany do ładowania modułów wewnętrznych)
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 
-local function safeHttpGet(url, maxRetries, delayTime)
+local function safeHttpGet(url, maxRetries, retryDelay)
     maxRetries = maxRetries or 3
-    delayTime = delayTime or 0.5
+    retryDelay = retryDelay or 0.5
     for attempt = 1, maxRetries do
-        local success, result = pcall(function()
+        local ok, result = pcall(function()
             return game:HttpGet(url)
         end)
-        if success and type(result) == "string" and #result > 0 then
+        if ok and type(result) == "string" and #result > 0 then
             return true, result
         end
-        if attempt < maxRetries then
-            task.wait(delayTime)
-        end
+        warn(string.format("[Window] Próba %d/%d nie powiodła się: %s", attempt, maxRetries, tostring(url)))
+        if attempt < maxRetries then task.wait(retryDelay) end
     end
     return false, nil
 end
 
 local function safeLoadUrl(url, fallbackValue)
-    local ok, content = safeHttpGet(url, 3, 0.5)
-    if ok and content then
-        local loadedFunc, err = loadstring(content)
-        if loadedFunc then
-            local runOk, result = pcall(loadedFunc)
-            if runOk then
-                return result
-            else
-                warn("[Window] Błąd wykonania skryptu z URL (" .. tostring(url) .. "): " .. tostring(result))
-            end
-        else
-            warn("[Window] Błąd kompilacji skryptu z URL (" .. tostring(url) .. "): " .. tostring(err))
-        end
-    else
-        warn("[Window] Nie udało się pobrać pliku z URL: " .. tostring(url))
+    local ok, content = safeHttpGet(url)
+    if not ok or not content then
+        warn("[Window] Nie udało się pobrać: " .. tostring(url))
+        return fallbackValue
     end
-    return fallbackValue
+    local chunk, compileErr = loadstring(content)
+    if not chunk then
+        warn("[Window] Błąd kompilacji " .. tostring(url) .. ": " .. tostring(compileErr))
+        return fallbackValue
+    end
+    local runOk, result = pcall(chunk)
+    if not runOk then
+        warn("[Window] Błąd wykonania " .. tostring(url) .. ": " .. tostring(result))
+        return fallbackValue
+    end
+    return result
 end
 
-local IconsFallback = { Apply = function() end }
+-- // FALLBACKI DLA MODUŁÓW WEWNĘTRZNYCH
+local IconsFallback = {
+    Apply = function(self, imageLabel, iconName) end
+}
 local InteractionsFallback = {
-    MakeDraggable = function() end,
-    MakeResizable = function() end
+    MakeDraggable  = function(self, handle, target) end,
+    MakeResizable  = function(self, handle, target, minW, minH) end,
 }
 local SidebarFallback = {
-    Create = function(UI, theme, config)
+    Create = function(self, UI, theme, config)
         local SidebarFrame = Instance.new("Frame")
         SidebarFrame.Name = "Sidebar"
         SidebarFrame.Size = UDim2.new(0, 200, 1, -32)
@@ -62,42 +63,50 @@ local SidebarFallback = {
 
         local TabList = Instance.new("ScrollingFrame")
         TabList.Name = "TabList"
-        TabList.Size = UDim2.new(1, 0, 1, -106)
+        TabList.Size = UDim2.new(1, 0, 1, -46)
         TabList.Position = UDim2.new(0, 0, 0, 46)
         TabList.BackgroundTransparency = 1
+        TabList.BorderSizePixel = 0
+        TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
+        TabList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        TabList.ScrollBarThickness = 2
         TabList.Parent = SidebarFrame
 
-        local TabListLayout = Instance.new("UIListLayout")
-        TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        TabListLayout.Parent = TabList
+        local Layout = Instance.new("UIListLayout")
+        Layout.SortOrder = Enum.SortOrder.LayoutOrder
+        Layout.Parent = TabList
 
         return SidebarFrame, TabList
     end
 }
 
-local Icons = safeLoadUrl(baseUrl .. "Icons.lua", IconsFallback)
+-- Ładowanie modułów z fallbackami
+local Icons        = safeLoadUrl(baseUrl .. "Icons.lua",        IconsFallback)
 local Interactions = safeLoadUrl(baseUrl .. "Interactions.lua", InteractionsFallback)
-local SidebarModule = safeLoadUrl(baseUrl .. "Sidebar.lua", SidebarFallback)
+local SidebarModule= safeLoadUrl(baseUrl .. "Sidebar.lua",      SidebarFallback)
 
+-- // ============================================================
+-- // Window:Create
+-- // ============================================================
 function Window:Create(config)
     local UI = {}
-    UI.Tabs = {}
-    UI.Pages = {}
-    UI.TabObjects = {}
+    UI.Tabs       = {}
+    UI.Pages      = {}
+    UI.TabObjects = {}      -- { Button, Page, LayoutOrder }
     UI.SelectedTab = nil
-    UI.MenuConfig = config.MenuConfig
+    UI.MenuConfig     = config.MenuConfig
     UI.SaveMenuConfig = config.SaveMenuConfig
 
     -- // THEME MANAGER
-    local ThemeManager = { Elements = {}, CurrentTheme = config.Theme }
+    local ThemeManager = { Elements = {}, CurrentTheme = config.Theme or {} }
 
-    local function getColor(colorTable)
-        if not colorTable then return Color3.fromRGB(255, 0, 255) end
-        return Color3.fromRGB(unpack(colorTable))
+    local function getColor(t)
+        if not t then return Color3.fromRGB(255, 0, 255) end
+        return Color3.fromRGB(unpack(t))
     end
 
     function ThemeManager:Register(element, property, colorName)
-        table.insert(self.Elements, { Element = element, Property = property, ColorName = colorName })
+        table.insert(self.Elements, {Element = element, Property = property, ColorName = colorName})
         if self.CurrentTheme and self.CurrentTheme[colorName] then
             element[property] = getColor(self.CurrentTheme[colorName])
         end
@@ -107,19 +116,23 @@ function Window:Create(config)
         self.CurrentTheme = newTheme
         for _, item in pairs(self.Elements) do
             if self.CurrentTheme and self.CurrentTheme[item.ColorName] then
-                TweenService:Create(item.Element, TweenInfo.new(0.2), { [item.Property] = getColor(self.CurrentTheme[item.ColorName]) }):Play()
+                TweenService:Create(item.Element, TweenInfo.new(0.2),
+                    {[item.Property] = getColor(self.CurrentTheme[item.ColorName])}):Play()
             end
         end
     end
     UI.ThemeManager = ThemeManager
-    -- // END THEME MANAGER
 
+    -- // USTAWIENIA EKRANU
     local isTouch = UserInputService.TouchEnabled or config.TestMobile
 
-    local ProtectedLocation = nil
+    local ProtectedLocation
     pcall(function() ProtectedLocation = CoreGui end)
-    if not ProtectedLocation then ProtectedLocation = Players.LocalPlayer:WaitForChild("PlayerGui") end
+    if not ProtectedLocation then
+        ProtectedLocation = Players.LocalPlayer:WaitForChild("PlayerGui")
+    end
 
+    -- ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = config.GenerateID and config.GenerateID() or "MenuScreen"
     ScreenGui:SetAttribute(config.MenuId or "MenuInstance", true)
@@ -128,6 +141,7 @@ function Window:Create(config)
     ScreenGui.Parent = ProtectedLocation
     UI.ScreenGui = ScreenGui
 
+    -- Cień
     local Shadow = Instance.new("ImageLabel")
     Shadow.Name = "Shadow"
     Shadow.BackgroundTransparency = 1
@@ -139,6 +153,7 @@ function Window:Create(config)
     Shadow.SliceCenter = Rect.new(49, 49, 50, 50)
     Shadow.Parent = ScreenGui
 
+    -- MainFrame
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.Size = UDim2.new(0, 700, 0, 400)
@@ -157,6 +172,7 @@ function Window:Create(config)
     MainStroke.Thickness = 1.6
     ThemeManager:Register(MainStroke, "Color", "Accent")
 
+    -- TopBar
     local TopBar = Instance.new("Frame")
     TopBar.Name = "TopBar"
     TopBar.Size = UDim2.new(1, 0, 0, 32)
@@ -176,7 +192,6 @@ function Window:Create(config)
         TopTitle.Position = UDim2.new(0, 10, 0, 0)
         TopTitle.Parent = TopBar
         ThemeManager:Register(TopTitle, "TextColor3", "Text_Secondary")
-
         if config.TittlePos == "Center" then
             TopTitle.TextXAlignment = Enum.TextXAlignment.Center
             TopTitle.Position = UDim2.new(0, 0, 0, 0)
@@ -187,6 +202,7 @@ function Window:Create(config)
         end
     end
 
+    -- Linia pod TopBarem
     local TopLine = Instance.new("Frame")
     TopLine.Size = UDim2.new(1, 0, 0, 1)
     TopLine.Position = UDim2.new(0, 0, 0, 32)
@@ -195,10 +211,12 @@ function Window:Create(config)
     TopLine.Parent = MainFrame
     ThemeManager:Register(TopLine, "BackgroundColor3", "Accent")
 
+    -- Sidebar
     local SidebarFrame, TabList = SidebarModule:Create(UI, config.Theme, config)
     SidebarFrame.Parent = MainFrame
     UI.TabList = TabList
 
+    -- GlobalIndicator (wskaźnik aktywnej zakładki)
     local GlobalIndicator = Instance.new("Frame")
     GlobalIndicator.Name = "GlobalIndicator"
     GlobalIndicator.Size = UDim2.new(0, 2, 0, 45)
@@ -210,6 +228,7 @@ function Window:Create(config)
     UI.GlobalIndicator = GlobalIndicator
     ThemeManager:Register(GlobalIndicator, "BackgroundColor3", "Text")
 
+    -- Pionowa linia oddzielająca sidebar
     local VerticalLine = Instance.new("Frame")
     VerticalLine.Size = UDim2.new(0, 1, 1, 0)
     VerticalLine.Position = UDim2.new(1, 0, 0, 0)
@@ -218,6 +237,7 @@ function Window:Create(config)
     VerticalLine.Parent = SidebarFrame
     ThemeManager:Register(VerticalLine, "BackgroundColor3", "Accent")
 
+    -- PagesContainer
     local PagesContainer = Instance.new("Frame")
     PagesContainer.Name = "PagesContainer"
     PagesContainer.Size = UDim2.new(1, -200, 1, -32)
@@ -227,6 +247,7 @@ function Window:Create(config)
     PagesContainer.Parent = MainFrame
     UI.PagesContainer = PagesContainer
 
+    -- Controls (przyciski min/max/close)
     local Controls = Instance.new("Frame")
     Controls.Name = "Controls"
     Controls.Size = UDim2.new(0, 105, 1, 0)
@@ -252,34 +273,35 @@ function Window:Create(config)
         iconImg.BackgroundTransparency = 1
         iconImg.Parent = btn
         ThemeManager:Register(iconImg, "ImageColor3", "Text_Secondary")
-
         Icons:Apply(iconImg, iconName)
         return btn
     end
 
-    UI.MinBtn = createIconBtn("minus", UDim2.new(0, 0, 0, 0))
-    UI.MaxBtn = createIconBtn("maximize-2", UDim2.new(0, 35, 0, 0))
-    UI.CloseBtn = createIconBtn("x", UDim2.new(0, 70, 0, 0))
+    UI.MinBtn   = createIconBtn("minus",      UDim2.new(0,  0, 0, 0))
+    UI.MaxBtn   = createIconBtn("maximize-2", UDim2.new(0, 35, 0, 0))
+    UI.CloseBtn = createIconBtn("x",          UDim2.new(0, 70, 0, 0))
 
+    -- Maximize/restore
     local maximized = false
     local lastSize, lastPos
 
     UI.MaxBtn.MouseButton1Click:Connect(function()
         if not maximized then
             lastSize = MainFrame.Size
-            lastPos = MainFrame.Position
-            MainFrame:TweenSizeAndPosition(UDim2.new(1, 0, 1, 0), UDim2.new(0.5, 0, 0.5, 0), "Out", "Quart", 0.3, true)
+            lastPos  = MainFrame.Position
+            MainFrame:TweenSizeAndPosition(UDim2.new(1,0,1,0), UDim2.new(0.5,0,0.5,0), "Out","Quart",0.3,true)
             maximized = true
             Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "square")
-            UI.ResizeHandle.Visible = false
+            if UI.ResizeHandle then UI.ResizeHandle.Visible = false end
         else
-            MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out", "Quart", 0.3, true)
+            MainFrame:TweenSizeAndPosition(lastSize, lastPos, "Out","Quart",0.3,true)
             maximized = false
             Icons:Apply(UI.MaxBtn:FindFirstChild("Icon"), "maximize-2")
-            UI.ResizeHandle.Visible = true
+            if UI.ResizeHandle then UI.ResizeHandle.Visible = true end
         end
     end)
 
+    -- ResizeHandle
     local ResizeHandle = Instance.new("TextButton")
     ResizeHandle.Name = "ResizeHandle"
     ResizeHandle.Size = UDim2.new(0, 25, 0, 25)
@@ -303,17 +325,24 @@ function Window:Create(config)
     Interactions:MakeDraggable(TopBar, MainFrame)
     Interactions:MakeResizable(ResizeHandle, MainFrame, 700, 400)
 
+    -- Cień śledzi MainFrame
     Shadow.AnchorPoint = MainFrame.AnchorPoint
     local SHADOW_OFFSET = 35
-
     RunService.RenderStepped:Connect(function()
         if MainFrame.Visible then
-            Shadow.Position = UDim2.new(0, MainFrame.AbsolutePosition.X + (MainFrame.AbsoluteSize.X / 2), 0, MainFrame.AbsolutePosition.Y + (MainFrame.AbsoluteSize.Y / 2))
-            Shadow.Size = UDim2.new(0, MainFrame.AbsoluteSize.X + (SHADOW_OFFSET * 2), 0, MainFrame.AbsoluteSize.Y + (SHADOW_OFFSET * 2))
+            Shadow.Position = UDim2.new(0,
+                MainFrame.AbsolutePosition.X + MainFrame.AbsoluteSize.X / 2,
+                0,
+                MainFrame.AbsolutePosition.Y + MainFrame.AbsoluteSize.Y / 2)
+            Shadow.Size = UDim2.new(0,
+                MainFrame.AbsoluteSize.X + SHADOW_OFFSET * 2,
+                0,
+                MainFrame.AbsoluteSize.Y + SHADOW_OFFSET * 2)
         end
         Shadow.Visible = MainFrame.Visible
     end)
 
+    -- Mobile toggle
     if isTouch then
         local MobileToggle = Instance.new("TextButton")
         MobileToggle.Name = "MobileToggle"
@@ -325,7 +354,6 @@ function Window:Create(config)
         MobileToggle.Parent = ScreenGui
         UI.MobileToggle = MobileToggle
         ThemeManager:Register(MobileToggle, "BackgroundColor3", "Main")
-
         Instance.new("UICorner", MobileToggle).CornerRadius = UDim.new(0, 10)
         local Stroke = Instance.new("UIStroke", MobileToggle)
         Stroke.Thickness = 1.5
@@ -354,13 +382,11 @@ function Window:Create(config)
         UI.MobileToggleText = ToggleText
 
         MainFrame.Visible = true
-
         MobileToggle.MouseButton1Click:Connect(function()
-            local isVisible = MainFrame.Visible
-            MainFrame.Visible = not isVisible
-            Shadow.Visible = not isVisible
-
-            if isVisible then
+            local vis = MainFrame.Visible
+            MainFrame.Visible = not vis
+            Shadow.Visible    = not vis
+            if vis then
                 ToggleText.Text = "OPEN"
                 ToggleText.TextColor3 = getColor(ThemeManager.CurrentTheme.Success)
             else
@@ -368,10 +394,10 @@ function Window:Create(config)
                 ToggleText.TextColor3 = Color3.fromRGB(255, 100, 100)
             end
         end)
-
         Interactions:MakeDraggable(MobileToggle, MobileToggle)
     end
 
+    -- Modal wyjścia
     local function ShowExitModal()
         local Overlay = Instance.new("Frame")
         Overlay.Name = "ExitOverlay"
@@ -389,7 +415,6 @@ function Window:Create(config)
         Modal.BorderSizePixel = 0
         Modal.Parent = Overlay
         ThemeManager:Register(Modal, "BackgroundColor3", "Secondary")
-
         Instance.new("UICorner", Modal).CornerRadius = UDim.new(0, 8)
         local Stroke = Instance.new("UIStroke", Modal)
         Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -405,7 +430,7 @@ function Window:Create(config)
         Question.Parent = Modal
         ThemeManager:Register(Question, "TextColor3", "Text")
 
-        local function createBtn(text, colorKey, pos)
+        local function makeBtn(text, colorKey, pos)
             local btn = Instance.new("TextButton")
             btn.Text = text
             btn.Font = Enum.Font.GothamMedium
@@ -419,18 +444,20 @@ function Window:Create(config)
             return btn
         end
 
-        local YesBtn = createBtn("Yes", "Close", UDim2.new(0.5, -110, 0.7, 0))
-        local NoBtn = createBtn("No", "Accent", UDim2.new(0.5, 10, 0.7, 0))
-
+        local YesBtn = makeBtn("Yes", "Close",  UDim2.new(0.5, -110, 0.7, 0))
+        local NoBtn  = makeBtn("No",  "Accent",  UDim2.new(0.5,   10, 0.7, 0))
         YesBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-        NoBtn.MouseButton1Click:Connect(function() Overlay:Destroy() end)
+        NoBtn.MouseButton1Click:Connect(function()  Overlay:Destroy()   end)
     end
     UI.ShowExitModal = ShowExitModal
 
-    -- METODA WYBORU ZAKŁADKI
+    -- // ============================================================
+    -- // UI:SelectTab  – wybiera zakładkę i ustawia GlobalIndicator
+    -- // ============================================================
     function UI:SelectTab(targetButton, immediate)
         if not targetButton then return end
 
+        -- Znajdź stronę powiązaną z przyciskiem
         local targetPage = nil
         for _, tabObj in ipairs(UI.TabObjects) do
             if tabObj.Button == targetButton then
@@ -438,79 +465,90 @@ function Window:Create(config)
                 break
             end
         end
+        if not targetPage then
+            warn("[Window] SelectTab: nie znaleziono Page dla przycisku " .. tostring(targetButton.Name))
+            return
+        end
 
-        if not targetPage then return end
-
-        UI.GlobalIndicator.Visible = true
-
+        -- Wyczyść poprzedni stan
         if UI.SelectedTab and UI.SelectedTab ~= targetButton then
-            local prevIcon = UI.SelectedTab:FindFirstChild("Icon")
+            local prevIcon  = UI.SelectedTab:FindFirstChild("Icon")
             local prevLabel = UI.SelectedTab:FindFirstChild("Label")
-            if prevIcon then
-                TweenService:Create(prevIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play()
-            end
-            if prevLabel then
-                TweenService:Create(prevLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play()
-            end
+            if prevIcon  then TweenService:Create(prevIcon,  TweenInfo.new(0.2),
+                {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
+            if prevLabel then TweenService:Create(prevLabel, TweenInfo.new(0.2),
+                {TextColor3  = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
         end
 
-        for _, page in ipairs(UI.Pages) do
-            page.Visible = false
-        end
+        -- Ukryj wszystkie strony, pokaż wybraną
+        for _, page in ipairs(UI.Pages) do page.Visible = false end
         targetPage.Visible = true
         UI.SelectedTab = targetButton
 
-        local TabIcon = targetButton:FindFirstChild("Icon")
+        -- Podświetl wybrany przycisk
+        local TabIcon  = targetButton:FindFirstChild("Icon")
         local TabLabel = targetButton:FindFirstChild("Label")
-        if TabIcon then
-            TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
-        end
-        if TabLabel then
-            TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
-        end
+        if TabIcon  then TweenService:Create(TabIcon,  TweenInfo.new(0.2),
+            {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play() end
+        if TabLabel then TweenService:Create(TabLabel, TweenInfo.new(0.2),
+            {TextColor3  = getColor(ThemeManager.CurrentTheme.Text)}):Play() end
+
+        -- Pozycja GlobalIndicator
+        UI.GlobalIndicator.Visible = true
 
         local function updateIndicator()
             if not targetButton or not SidebarFrame then return end
             local relativeY = targetButton.AbsolutePosition.Y - SidebarFrame.AbsolutePosition.Y
+            -- Fallback gdy layout engine jeszcze nie obliczył AbsolutePosition
             if relativeY <= 0 or targetButton.AbsolutePosition.Y == 0 then
                 relativeY = 46 + (targetButton.LayoutOrder - 1) * 45
             end
             if immediate then
                 UI.GlobalIndicator.Position = UDim2.new(0, 0, 0, relativeY)
             else
-                TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                    Position = UDim2.new(0, 0, 0, relativeY)
-                }):Play()
+                TweenService:Create(UI.GlobalIndicator,
+                    TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+                    {Position = UDim2.new(0, 0, 0, relativeY)}):Play()
             end
         end
 
         updateIndicator()
+        -- Wywołaj ponownie po klatce, gdy Roblox obliczy AbsolutePosition
         task.defer(updateIndicator)
     end
 
-    -- METODA AUTOMATYCZNEGO WYBORU PIERWSZEJ ZAKŁADKI (DASHBOARD)
+    -- // ============================================================
+    -- // UI:SelectDashboard  – wybiera pierwszą zakładkę (LayoutOrder=1)
+    -- // ============================================================
     function UI:SelectDashboard()
-        if #UI.TabObjects == 0 then return end
+        if #UI.TabObjects == 0 then
+            warn("[Window] SelectDashboard: brak zakładek w UI.TabObjects!")
+            return
+        end
 
-        local dashboardTab = nil
-        local lowestOrder = math.huge
+        local dashButton   = nil
+        local lowestOrder  = math.huge
 
         for _, tabObj in ipairs(UI.TabObjects) do
             if tabObj.Button and tabObj.Button.LayoutOrder < lowestOrder then
-                lowestOrder = tabObj.Button.LayoutOrder
-                dashboardTab = tabObj.Button
+                lowestOrder  = tabObj.Button.LayoutOrder
+                dashButton   = tabObj.Button
             end
         end
 
-        if not dashboardTab and UI.Tabs[1] then
-            dashboardTab = UI.Tabs[1]
-        end
+        -- Dodatkowy fallback – weź pierwszy zarejestrowany tab
+        if not dashButton then dashButton = UI.Tabs[1] end
 
-        if dashboardTab then
-            UI:SelectTab(dashboardTab, true)
+        if dashButton then
+            UI:SelectTab(dashButton, true)
+        else
+            warn("[Window] SelectDashboard: nie znaleziono przycisku Dashboard!")
         end
     end
 
+    -- // ============================================================
+    -- // UI:CreateTab  – tworzy przycisk i stronę zakładki
+    -- // ============================================================
     function UI:CreateTab(name, icon, order)
         local tabOrder = order or (#UI.Tabs + 1)
 
@@ -551,8 +589,8 @@ function Window:Create(config)
         Page.Size = UDim2.new(1, 0, 1, 0)
         Page.BackgroundTransparency = 1
         Page.BorderSizePixel = 0
-        Page.Visible = false
-        Page.CanvasSize = UDim2.new(0,0,0,0)
+        Page.Visible = false                       -- domyślnie ukryta; SelectDashboard otworzy właściwą
+        Page.CanvasSize = UDim2.new(0, 0, 0, 0)
         Page.ScrollBarThickness = 4
         Page.Parent = UI.PagesContainer
 
@@ -561,21 +599,25 @@ function Window:Create(config)
         PageLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
         local PagePadding = Instance.new("UIPadding", Page)
-        PagePadding.PaddingLeft = UDim.new(0, 20)
-        PagePadding.PaddingTop = UDim.new(0, 20)
+        PagePadding.PaddingLeft  = UDim.new(0, 20)
+        PagePadding.PaddingTop   = UDim.new(0, 20)
         PagePadding.PaddingRight = UDim.new(0, 20)
 
+        -- Kliknięcie przycisku zakładki
         TabButton.MouseButton1Click:Connect(function()
             UI:SelectTab(TabButton)
         end)
 
-        table.insert(UI.Tabs, TabButton)
-        table.insert(UI.Pages, Page)
-        table.insert(UI.TabObjects, { Button = TabButton, Page = Page, LayoutOrder = tabOrder })
+        table.insert(UI.Tabs,      TabButton)
+        table.insert(UI.Pages,     Page)
+        table.insert(UI.TabObjects, {Button = TabButton, Page = Page, LayoutOrder = tabOrder})
 
         return {Button = TabButton, Page = Page}
     end
 
+    -- // ============================================================
+    -- // UI:CreateModuleGrid  – siatka dla modułów
+    -- // ============================================================
     function UI:CreateModuleGrid(parentPage)
         local GridFrame = Instance.new("Frame")
         GridFrame.Name = "ModuleGrid"
@@ -586,8 +628,8 @@ function Window:Create(config)
 
         local GridLayout = Instance.new("UIGridLayout", GridFrame)
         GridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
-        GridLayout.CellSize = UDim2.new(0, 220, 0, 50)
-        GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        GridLayout.CellSize    = UDim2.new(0, 220, 0, 50)
+        GridLayout.SortOrder   = Enum.SortOrder.LayoutOrder
 
         return GridFrame
     end
