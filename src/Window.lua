@@ -7,16 +7,83 @@ local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
--- Ładowanie modułów
+-- Ładowanie modułów (Zabezpieczone pobieranie z ponawianiem prób i fallbackami)
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
-local Icons = loadstring(game:HttpGet(baseUrl .. "Icons.lua"))()
-local Interactions = loadstring(game:HttpGet(baseUrl .. "Interactions.lua"))()
-local SidebarModule = loadstring(game:HttpGet(baseUrl .. "Sidebar.lua"))()
+
+local function safeHttpGet(url, maxRetries, delayTime)
+    maxRetries = maxRetries or 3
+    delayTime = delayTime or 0.5
+    for attempt = 1, maxRetries do
+        local success, result = pcall(function()
+            return game:HttpGet(url)
+        end)
+        if success and type(result) == "string" and #result > 0 then
+            return true, result
+        end
+        if attempt < maxRetries then
+            task.wait(delayTime)
+        end
+    end
+    return false, nil
+end
+
+local function safeLoadUrl(url, fallbackValue)
+    local ok, content = safeHttpGet(url, 3, 0.5)
+    if ok and content then
+        local loadedFunc, err = loadstring(content)
+        if loadedFunc then
+            local runOk, result = pcall(loadedFunc)
+            if runOk then
+                return result
+            else
+                warn("[Window] Błąd wykonania skryptu z URL (" .. tostring(url) .. "): " .. tostring(result))
+            end
+        else
+            warn("[Window] Błąd kompilacji skryptu z URL (" .. tostring(url) .. "): " .. tostring(err))
+        end
+    else
+        warn("[Window] Nie udało się pobrać pliku z URL: " .. tostring(url))
+    end
+    return fallbackValue
+end
+
+local IconsFallback = { Apply = function() end }
+local InteractionsFallback = {
+    MakeDraggable = function() end,
+    MakeResizable = function() end
+}
+local SidebarFallback = {
+    Create = function(UI, theme, config)
+        local SidebarFrame = Instance.new("Frame")
+        SidebarFrame.Name = "Sidebar"
+        SidebarFrame.Size = UDim2.new(0, 200, 1, -32)
+        SidebarFrame.Position = UDim2.new(0, 0, 0, 32)
+        SidebarFrame.BackgroundTransparency = 1
+
+        local TabList = Instance.new("ScrollingFrame")
+        TabList.Name = "TabList"
+        TabList.Size = UDim2.new(1, 0, 1, -106)
+        TabList.Position = UDim2.new(0, 0, 0, 46)
+        TabList.BackgroundTransparency = 1
+        TabList.Parent = SidebarFrame
+
+        local TabListLayout = Instance.new("UIListLayout")
+        TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        TabListLayout.Parent = TabList
+
+        return SidebarFrame, TabList
+    end
+}
+
+local Icons = safeLoadUrl(baseUrl .. "Icons.lua", IconsFallback)
+local Interactions = safeLoadUrl(baseUrl .. "Interactions.lua", InteractionsFallback)
+local SidebarModule = safeLoadUrl(baseUrl .. "Sidebar.lua", SidebarFallback)
 
 function Window:Create(config)
     local UI = {}
     UI.Tabs = {}
     UI.Pages = {}
+    UI.TabObjects = {}
     UI.SelectedTab = nil
     UI.MenuConfig = config.MenuConfig
     UI.SaveMenuConfig = config.SaveMenuConfig
@@ -31,7 +98,7 @@ function Window:Create(config)
 
     function ThemeManager:Register(element, property, colorName)
         table.insert(self.Elements, { Element = element, Property = property, ColorName = colorName })
-        if self.CurrentTheme[colorName] then
+        if self.CurrentTheme and self.CurrentTheme[colorName] then
             element[property] = getColor(self.CurrentTheme[colorName])
         end
     end
@@ -39,7 +106,7 @@ function Window:Create(config)
     function ThemeManager:Apply(newTheme)
         self.CurrentTheme = newTheme
         for _, item in pairs(self.Elements) do
-            if self.CurrentTheme[item.ColorName] then
+            if self.CurrentTheme and self.CurrentTheme[item.ColorName] then
                 TweenService:Create(item.Element, TweenInfo.new(0.2), { [item.Property] = getColor(self.CurrentTheme[item.ColorName]) }):Play()
             end
         end
@@ -54,8 +121,8 @@ function Window:Create(config)
     if not ProtectedLocation then ProtectedLocation = Players.LocalPlayer:WaitForChild("PlayerGui") end
 
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = config.GenerateID()
-    ScreenGui:SetAttribute(config.MenuId, true)
+    ScreenGui.Name = config.GenerateID and config.GenerateID() or "MenuScreen"
+    ScreenGui:SetAttribute(config.MenuId or "MenuInstance", true)
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = ProtectedLocation
@@ -360,7 +427,93 @@ function Window:Create(config)
     end
     UI.ShowExitModal = ShowExitModal
 
+    -- METODA WYBORU ZAKŁADKI
+    function UI:SelectTab(targetButton, immediate)
+        if not targetButton then return end
+
+        local targetPage = nil
+        for _, tabObj in ipairs(UI.TabObjects) do
+            if tabObj.Button == targetButton then
+                targetPage = tabObj.Page
+                break
+            end
+        end
+
+        if not targetPage then return end
+
+        UI.GlobalIndicator.Visible = true
+
+        if UI.SelectedTab and UI.SelectedTab ~= targetButton then
+            local prevIcon = UI.SelectedTab:FindFirstChild("Icon")
+            local prevLabel = UI.SelectedTab:FindFirstChild("Label")
+            if prevIcon then
+                TweenService:Create(prevIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play()
+            end
+            if prevLabel then
+                TweenService:Create(prevLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play()
+            end
+        end
+
+        for _, page in ipairs(UI.Pages) do
+            page.Visible = false
+        end
+        targetPage.Visible = true
+        UI.SelectedTab = targetButton
+
+        local TabIcon = targetButton:FindFirstChild("Icon")
+        local TabLabel = targetButton:FindFirstChild("Label")
+        if TabIcon then
+            TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
+        end
+        if TabLabel then
+            TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
+        end
+
+        local function updateIndicator()
+            if not targetButton or not SidebarFrame then return end
+            local relativeY = targetButton.AbsolutePosition.Y - SidebarFrame.AbsolutePosition.Y
+            if relativeY <= 0 or targetButton.AbsolutePosition.Y == 0 then
+                relativeY = 46 + (targetButton.LayoutOrder - 1) * 45
+            end
+            if immediate then
+                UI.GlobalIndicator.Position = UDim2.new(0, 0, 0, relativeY)
+            else
+                TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                    Position = UDim2.new(0, 0, 0, relativeY)
+                }):Play()
+            end
+        end
+
+        updateIndicator()
+        task.defer(updateIndicator)
+    end
+
+    -- METODA AUTOMATYCZNEGO WYBORU PIERWSZEJ ZAKŁADKI (DASHBOARD)
+    function UI:SelectDashboard()
+        if #UI.TabObjects == 0 then return end
+
+        local dashboardTab = nil
+        local lowestOrder = math.huge
+
+        for _, tabObj in ipairs(UI.TabObjects) do
+            if tabObj.Button and tabObj.Button.LayoutOrder < lowestOrder then
+                lowestOrder = tabObj.Button.LayoutOrder
+                dashboardTab = tabObj.Button
+            end
+        end
+
+        if not dashboardTab and UI.Tabs[1] then
+            dashboardTab = UI.Tabs[1]
+        end
+
+        if dashboardTab then
+            UI:SelectTab(dashboardTab, true)
+        end
+    end
+
     function UI:CreateTab(name, icon, order)
+        local tabOrder = order or (#UI.Tabs + 1)
+
         local TabButton = Instance.new("TextButton")
         TabButton.Name = name
         TabButton.Size = UDim2.new(1, 0, 0, 45)
@@ -368,7 +521,7 @@ function Window:Create(config)
         TabButton.Text = ""
         TabButton.AutoButtonColor = false
         TabButton.BorderSizePixel = 0
-        TabButton.LayoutOrder = order or (#UI.Tabs + 1)
+        TabButton.LayoutOrder = tabOrder
         TabButton.Parent = TabList
 
         local TabIcon = Instance.new("ImageLabel")
@@ -400,7 +553,7 @@ function Window:Create(config)
         Page.BorderSizePixel = 0
         Page.Visible = false
         Page.CanvasSize = UDim2.new(0,0,0,0)
-        Page.ScrollBarThickness = 4 -- ZMIANA: Widoczny pasek przewijania
+        Page.ScrollBarThickness = 4
         Page.Parent = UI.PagesContainer
 
         local PageLayout = Instance.new("UIListLayout", Page)
@@ -412,37 +565,14 @@ function Window:Create(config)
         PagePadding.PaddingTop = UDim.new(0, 20)
         PagePadding.PaddingRight = UDim.new(0, 20)
 
-        local function Select()
-            if UI.SelectedTab == TabButton then return end
+        TabButton.MouseButton1Click:Connect(function()
+            UI:SelectTab(TabButton)
+        end)
 
-            UI.GlobalIndicator.Visible = true
-
-            if UI.SelectedTab then
-                local prevIcon = UI.SelectedTab:FindFirstChild("Icon")
-                local prevLabel = UI.SelectedTab:FindFirstChild("Label")
-                if prevIcon then TweenService:Create(prevIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
-                if prevLabel then TweenService:Create(prevLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text_Secondary)}):Play() end
-            end
-
-            for _, p in pairs(UI.Pages) do p.Visible = false end
-            Page.Visible = true
-            UI.SelectedTab = TabButton
-
-            TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
-            TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = getColor(ThemeManager.CurrentTheme.Text)}):Play()
-
-            local relativeY = TabButton.AbsolutePosition.Y - SidebarFrame.AbsolutePosition.Y
-
-            TweenService:Create(UI.GlobalIndicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-                Position = UDim2.new(0, 0, 0, relativeY)
-            }):Play()
-        end
-
-        TabButton.MouseButton1Click:Connect(Select)
         table.insert(UI.Tabs, TabButton)
         table.insert(UI.Pages, Page)
+        table.insert(UI.TabObjects, { Button = TabButton, Page = Page, LayoutOrder = tabOrder })
 
-        if #UI.Tabs == 1 then task.spawn(Select) end
         return {Button = TabButton, Page = Page}
     end
 
@@ -456,7 +586,7 @@ function Window:Create(config)
 
         local GridLayout = Instance.new("UIGridLayout", GridFrame)
         GridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
-        GridLayout.CellSize = UDim2.new(0, 220, 0, 50) -- Podstawa modułu
+        GridLayout.CellSize = UDim2.new(0, 220, 0, 50)
         GridLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
         return GridFrame

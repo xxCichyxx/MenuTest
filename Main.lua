@@ -10,16 +10,65 @@ local PlayerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 
-local success, result = pcall(function()
-    return game:HttpGet(baseUrl .. "Window.lua")
-end)
-
-if not success or not result then
-    warn("Błąd krytyczny: Nie udało się pobrać Window.lua")
-    return
+-- // SYSTEM BEZPIECZNEGO POBIERANIA (Safe Loading with Retries & Fallback)
+local function safeHttpGet(url, maxRetries, delayTime)
+    maxRetries = maxRetries or 3
+    delayTime = delayTime or 0.5
+    for attempt = 1, maxRetries do
+        local success, result = pcall(function()
+            return game:HttpGet(url)
+        end)
+        if success and type(result) == "string" and #result > 0 then
+            return true, result
+        end
+        if attempt < maxRetries then
+            task.wait(delayTime)
+        end
+    end
+    return false, nil
 end
 
-local WindowModule = loadstring(result)()
+local function safeLoadUrl(url, fallbackValue)
+    local ok, content = safeHttpGet(url, 3, 0.5)
+    if ok and content then
+        local loadedFunc, err = loadstring(content)
+        if loadedFunc then
+            local runOk, result = pcall(loadedFunc)
+            if runOk then
+                return result
+            else
+                warn("[MenuLib] Błąd wykonania skryptu z URL (" .. tostring(url) .. "): " .. tostring(result))
+            end
+        else
+            warn("[MenuLib] Błąd kompilacji skryptu z URL (" .. tostring(url) .. "): " .. tostring(err))
+        end
+    else
+        warn("[MenuLib] Nie udało się pobrać pliku z URL: " .. tostring(url))
+    end
+    return fallbackValue
+end
+
+local WindowModuleFallback = {
+    Create = function(config)
+        warn("[MenuLib] Wywołano awaryjny WindowModule")
+        local dummyScreen = Instance.new("ScreenGui")
+        local dummyFrame = Instance.new("Frame")
+        dummyFrame.Parent = dummyScreen
+        return {
+            ScreenGui = dummyScreen,
+            MainFrame = dummyFrame,
+            MinBtn = Instance.new("TextButton"),
+            CloseBtn = Instance.new("TextButton"),
+            CreateTab = function() return { Button = Instance.new("TextButton"), Page = Instance.new("ScrollingFrame") } end,
+            SelectDashboard = function() end,
+            Tabs = {},
+            Pages = {},
+            _readyCallbacks = {}
+        }
+    end
+}
+
+local WindowModule = safeLoadUrl(baseUrl .. "Window.lua", WindowModuleFallback)
 
 -- // FUNKCJE POMOCNICZE
 function MenuLib:GenerateID(length)
@@ -173,41 +222,47 @@ function MenuLib:CreateWindow(options)
         if not gpe and input.KeyCode == Enum.KeyCode[Config.ToggleUIKeybind or "Insert"] then toggleMenu() end
     end))
 
-    UI.MinBtn.MouseButton1Click:Connect(toggleMenu)
-    UI.CloseBtn.MouseButton1Click:Connect(function()
-        if UI.ShowExitModal then
-            UI.ShowExitModal()
-        else
-            UI.ScreenGui:Destroy()
-        end
-    end)
+    if UI.MinBtn then UI.MinBtn.MouseButton1Click:Connect(toggleMenu) end
+    if UI.CloseBtn then
+        UI.CloseBtn.MouseButton1Click:Connect(function()
+            if UI.ShowExitModal then
+                UI.ShowExitModal()
+            else
+                UI.ScreenGui:Destroy()
+            end
+        end)
+    end
     if UI.MobileToggle then UI.MobileToggle.MouseButton1Click:Connect(toggleMenu) end
 
     -- // 5. PUBLICZNE API
     local WindowAPI = {}
-    local userTabCounter = 2
+    UI._userTabCounter = 2
+    UI._systemTabsLoaded = false
+    UI._isReady = false
+    UI._readyCallbacks = UI._readyCallbacks or {}
 
-    -- Funkcja pomocnicza do bezpiecznego ładowania elementu
-    local function safeLoadElement(path)
-        local ok, res = pcall(function() return game:HttpGet(baseUrl .. path) end)
-        if ok and res then
-            local loaded = loadstring(res)
-            if loaded then return loaded() end
-        end
-        return function() return {} end
-    end
+    local dummyElementConstructor = function() return function() return {} end end
 
-    local ButtonElement = safeLoadElement("elements/Button.lua")
-    local ToggleElement = safeLoadElement("elements/Toggle.lua")
-    local ColorPickerElement = safeLoadElement("elements/ColorPicker.lua")
-    local SliderElement = safeLoadElement("elements/Slider.lua")
-    local InputElement = safeLoadElement("elements/Input.lua")
-    local DropdownElement = safeLoadElement("elements/Dropdown.lua")
-    local ModuleElement = safeLoadElement("elements/Module.lua")
+    local ButtonElement = safeLoadUrl(baseUrl .. "elements/Button.lua", dummyElementConstructor)
+    local ToggleElement = safeLoadUrl(baseUrl .. "elements/Toggle.lua", dummyElementConstructor)
+    local ColorPickerElement = safeLoadUrl(baseUrl .. "elements/ColorPicker.lua", dummyElementConstructor)
+    local SliderElement = safeLoadUrl(baseUrl .. "elements/Slider.lua", dummyElementConstructor)
+    local InputElement = safeLoadUrl(baseUrl .. "elements/Input.lua", dummyElementConstructor)
+    local DropdownElement = safeLoadUrl(baseUrl .. "elements/Dropdown.lua", dummyElementConstructor)
+    local ModuleElement = safeLoadUrl(baseUrl .. "elements/Module.lua", dummyElementConstructor)
 
     function WindowAPI:CreateTab(name, icon, order)
-        local TabElements = UI:CreateTab(name, icon or "layers", order or userTabCounter)
-        if not order then userTabCounter = userTabCounter + 1 end
+        -- Czekaj na zakończenie ładowania zakładek systemowych
+        if not UI._systemTabsLoaded then
+            while not UI._systemTabsLoaded do
+                task.wait()
+            end
+        end
+
+        local tabOrder = order or UI._userTabCounter
+        if not order then UI._userTabCounter = UI._userTabCounter + 1 end
+
+        local TabElements = UI:CreateTab(name, icon or "layers", tabOrder)
 
         local GridLayout = Instance.new("UIGridLayout")
         GridLayout.CellSize = UDim2.new(0.48, 0, 0, 50)
@@ -252,32 +307,81 @@ function MenuLib:CreateWindow(options)
         return TabAPI
     end
 
+    -- Funkcja inicjalizująca / callbackowa do rejestracji zakładek użytkownika po ładowaniu zakładek systemowych
+    function WindowAPI:Init(callback)
+        if type(callback) == "function" then
+            WindowAPI._initCallback = callback
+            if UI._systemTabsLoaded then
+                task.spawn(function()
+                    local ok, err = pcall(callback, WindowAPI)
+                    if not ok then warn("[MenuLib] Błąd w callbacku Init: " .. tostring(err)) end
+                    UI:SelectDashboard()
+                end)
+            end
+        end
+        return WindowAPI
+    end
+
+    function WindowAPI:OnReady(callback)
+        if UI._isReady then
+            task.spawn(function() pcall(callback, WindowAPI) end)
+        else
+            table.insert(UI._readyCallbacks, function()
+                pcall(callback, WindowAPI)
+            end)
+        end
+        return WindowAPI
+    end
+
     UI.WindowAPI = WindowAPI
 
+    -- // SEKWENCYJNE I SYNCHRONICZNE ŁADOWANIE ZAKŁADEK SYSTEMOWYCH W TLE
     task.spawn(function()
-        pcall(function()
-            local DashboardModule = loadstring(game:HttpGet(baseUrl .. "tabs/Dashboard.lua"))()
-            if DashboardModule then DashboardModule:Render(UI, 1) end
-        end)
-        pcall(function()
-            local SettingsModule = loadstring(game:HttpGet(baseUrl .. "tabs/Settings.lua"))()
-            if SettingsModule then SettingsModule:Render(UI, 999, themeColors, mainFolder) end
-        end)
+        -- 1. Najpierw Dashboard.lua (LayoutOrder = 1)
+        local DashboardModule = safeLoadUrl(baseUrl .. "tabs/Dashboard.lua", nil)
+        if DashboardModule and type(DashboardModule.Render) == "function" then
+            pcall(function()
+                DashboardModule:Render(UI, 1)
+            end)
+        else
+            warn("[MenuLib] Nie udało się załadować Dashboard.lua (pomijanie/fallback)")
+        end
+
+        -- 2. Następnie Settings.lua (LayoutOrder = 999)
+        local SettingsModule = safeLoadUrl(baseUrl .. "tabs/Settings.lua", nil)
+        if SettingsModule and type(SettingsModule.Render) == "function" then
+            pcall(function()
+                SettingsModule:Render(UI, 999, themeColors, mainFolder)
+            end)
+        else
+            warn("[MenuLib] Nie udało się załadować Settings.lua (pomijanie/fallback)")
+        end
+
+        -- Zakładki systemowe w pełni zainicjalizowane
+        UI._systemTabsLoaded = true
+
+        -- 3. Jeśli użytkownik zarejestrował metodę Init, wykonujemy ją teraz
+        if WindowAPI._initCallback then
+            local ok, err = pcall(WindowAPI._initCallback, WindowAPI)
+            if not ok then
+                warn("[MenuLib] Błąd w callbacku Init: " .. tostring(err))
+            end
+        end
+
         UI._isReady = true
         if UI._readyCallbacks then
             for _, cb in ipairs(UI._readyCallbacks) do
                 task.spawn(cb)
             end
         end
-    end)
 
-    function UI:OnReady(callback)
-        if self._isReady then
-            task.spawn(callback)
-        else
-            table.insert(self._readyCallbacks, callback)
-        end
-    end
+        -- 4. DOMYŚLNY WYBÓR DASHBOARD:
+        -- Po zakończeniu ładowania wszystkich zakładek (systemowych i użytkownika)
+        -- automatycznie aktywujemy i wybieramy pierwszą zakładkę od góry (Dashboard).
+        task.defer(function()
+            UI:SelectDashboard()
+        end)
+    end)
 
     return WindowAPI
 end
