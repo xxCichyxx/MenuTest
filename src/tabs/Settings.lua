@@ -10,11 +10,16 @@ local TweenService = game:GetService("TweenService")
 local baseUrl = "https://raw.githubusercontent.com/xxCichyxx/MenuTest/refs/heads/main/src/"
 local Icons = loadstring(game:HttpGet(baseUrl .. "Icons.lua"))()
 
-function Settings:Render(UI, order, theme, mainFolder)
-    -- // ZMIANA: Używamy UI.WindowAPI:CreateTab zamiast UI:CreateTab
-    -- UI.WindowAPI to publiczne API zdefiniowane w Main.lua, które posiada metody CreateToggle itp.
-    local TabAPI = UI.WindowAPI:CreateTab("Settings", "settings", order or 999)
-    local Page = TabAPI.Page -- Pobieramy stronę z obiektu API
+        function Settings:Render(UI, order, theme, mainFolder)
+            -- Ensure WindowAPI is available before creating Settings tab
+            local TabAPI
+            if UI.WindowAPI and typeof(UI.WindowAPI.CreateTab) == "function" then
+                TabAPI = UI.WindowAPI:CreateTab("Settings", "settings", order or 999)
+            else
+                warn("[Settings] UI.WindowAPI is unavailable; cannot create Settings tab.")
+                return
+            end
+            local Page = TabAPI.Page -- Pobieramy stronę z obiektu API
 
     local ThemeManager = UI.ThemeManager
 
