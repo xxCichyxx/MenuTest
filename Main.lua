@@ -238,6 +238,7 @@ function MenuLib:CreateWindow(options)
     local WindowAPI = {}
     UI._userTabCounter = 2
     UI._systemTabsLoaded = false
+    UI._isSystemLoading = false
     UI._isReady = false
     UI._readyCallbacks = UI._readyCallbacks or {}
 
@@ -252,8 +253,8 @@ function MenuLib:CreateWindow(options)
     local ModuleElement = safeLoadUrl(baseUrl .. "elements/Module.lua", dummyElementConstructor)
 
     function WindowAPI:CreateTab(name, icon, order)
-        -- Czekaj na zakończenie ładowania zakładek systemowych
-        if not UI._systemTabsLoaded then
+        -- Odczekaj na zakładki systemowe tylko jeśli wywołanie pochodzi z kodu użytkownika (poza procesem ładowania systemowego)
+        if not UI._systemTabsLoaded and not UI._isSystemLoading then
             while not UI._systemTabsLoaded do
                 task.wait()
             end
@@ -337,6 +338,8 @@ function MenuLib:CreateWindow(options)
 
     -- // SEKWENCYJNE I SYNCHRONICZNE ŁADOWANIE ZAKŁADEK SYSTEMOWYCH W TLE
     task.spawn(function()
+        UI._isSystemLoading = true
+
         -- 1. Najpierw Dashboard.lua (LayoutOrder = 1)
         local DashboardModule = safeLoadUrl(baseUrl .. "tabs/Dashboard.lua", nil)
         if DashboardModule and type(DashboardModule.Render) == "function" then
@@ -359,6 +362,7 @@ function MenuLib:CreateWindow(options)
 
         -- Zakładki systemowe w pełni zainicjalizowane
         UI._systemTabsLoaded = true
+        UI._isSystemLoading = false
 
         -- 3. Jeśli użytkownik zarejestrował metodę Init, wykonujemy ją teraz
         if WindowAPI._initCallback then
