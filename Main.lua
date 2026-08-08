@@ -340,6 +340,12 @@ function MenuLib:CreateWindow(options)
     end
 
     -- // ============================================================
+    -- // ŁADOWANIE ZAKŁADEK SYSTEMOWYCH W TLE (Dashboard i Settings)
+    -- // ============================================================
+    task.spawn(function()
+        -- 1. Dashboard (LayoutOrder = 1) ----------------------
+        local dashOk, dashErr = pcall(function()
+            local DashboardModule = safeLoadUrl(baseUrl .. "tabs/Dashboard.lua", nil)
             if DashboardModule and type(DashboardModule.Render) == "function" then
                 DashboardModule:Render(UI, 1)
             else
