@@ -89,17 +89,33 @@ function Sidebar:Create(UI, theme, config)
     AvatarCorner.CornerRadius = UDim.new(1, 0)
     AvatarCorner.Parent = Avatar
 
+    local NameFrame = Instance.new("Frame")
+    NameFrame.Name = "NameFrame"
+    NameFrame.Size = UDim2.new(1, -70, 1, 0)
+    NameFrame.Position = UDim2.new(0, 65, 0, 0)
+    NameFrame.BackgroundTransparency = 1
+    NameFrame.Parent = ProfileFrame
+
+    -- Dynamic display name handling
+    local displayName = LocalPlayer and LocalPlayer.DisplayName or "User"
+    local userName = LocalPlayer and LocalPlayer.Name or "Player"
+    local nameToShow = displayName
+    if #displayName > 12 then
+        nameToShow = userName
+    end
     local DisplayName = Instance.new("TextLabel")
     DisplayName.Name = "DisplayName"
-    DisplayName.Text = LocalPlayer and LocalPlayer.DisplayName or "User"
+    DisplayName.Text = nameToShow
     DisplayName.Font = Enum.Font.GothamBold
-    DisplayName.TextSize = 14
-    DisplayName.Size = UDim2.new(1, -70, 1, 0)
-    DisplayName.Position = UDim2.new(0, 65, 0, 0)
+    DisplayName.TextSize = 12
+    DisplayName.TextScaled = true
+    DisplayName.Size = UDim2.new(1, 0, 0.5, 0)
     DisplayName.BackgroundTransparency = 1
     DisplayName.TextXAlignment = Enum.TextXAlignment.Left
-    DisplayName.Parent = ProfileFrame
+    DisplayName.Parent = NameFrame
     UI.ThemeManager:Register(DisplayName, "TextColor3", "Text")
+
+
 
     return SidebarFrame, TabList
 end
